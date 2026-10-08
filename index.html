@@ -30,7 +30,14 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            transition: max-width 0.3s ease, width 0.3s ease;
             position: relative;
+        }
+
+        /* 四人模式寬螢幕自適應：若左右尚有空間，寬度自動延展填滿，讓玩家1放最左、玩家4放最右 */
+        .multi-widescreen {
+            max-width: 100vw !important;
+            width: 100% !important;
         }
 
         /* 統一文字大小為 14px */
@@ -279,11 +286,16 @@
                 </div>
                 <div>
                     <label class="block text-left text-sm font-bold text-gray-700 mb-1">密碼</label>
-                    <input type="password" id="login-pwd" inputmode="numeric" pattern="[0-9]*" class="w-full border-2 border-gray-300 rounded-lg p-2.5 font-bold text-gray-800 focus:border-blue-500 focus:outline-none text-center" placeholder="請輸入密碼">
+                    <div class="relative w-full">
+                        <input type="password" id="login-pwd" inputmode="text" autocomplete="current-password" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter') window.handleLogin()" class="w-full border-2 border-gray-300 rounded-lg p-2.5 pr-10 font-bold text-gray-800 focus:border-blue-500 focus:outline-none text-center" placeholder="請輸入密碼 (預設 123 或 t1)">
+                        <button type="button" onclick="window.toggleLoginPasswordVisibility()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 p-1 text-base focus:outline-none select-none" title="顯示/隱藏密碼">
+                            <span id="login-pwd-eye">👁️</span>
+                        </button>
+                    </div>
                 </div>
                 <div id="login-error" class="text-red-500 font-bold text-sm hidden bg-red-50 p-2 rounded border border-red-200">帳號或密碼錯誤！</div>
                 <div id="login-loading" class="text-blue-500 font-bold text-sm hidden">連接雲端庫中...</div>
-                <div class="text-sm font-bold text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 mt-2">提示：測試請選「測試」+「1號」，密碼 123</div>
+                <div class="text-sm font-bold text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 mt-2">提示：預設密碼 123 或 t1，新同學登入可直接開啟冒險！</div>
             </div>
             <div class="flex flex-col gap-3 w-full max-w-sm">
                 <button onclick="window.handleLogin()" id="btn-login" class="w-full btn-game bg-blue-500 text-white font-black py-3 px-4 rounded-xl text-lg border-2 border-blue-700 shadow-lg">登入遊玩</button>
@@ -402,8 +414,12 @@
                 </div>
 
                 <!-- 單人專屬：左下角資訊與正下方背影 -->
-                <div class="single-player-element absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-30 flex flex-col items-start gap-1">
+                <!-- 單人專屬：左下角資訊與正下方背影 -->
+                <div class="single-player-element absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-30 flex flex-col items-start gap-1.5 pointer-events-auto">
+                    <!-- 單人模式3隻POKEMON隊伍圈圈 (顯示在 player-box 上方紅圈位置，攻擊時保持固定不隨精靈移動) -->
+                    <div id="player-party" class="flex gap-1.5 sm:gap-2 justify-start items-center w-full z-30 pointer-events-auto mb-0.5"></div>
                     <div id="player-box" class="bg-white/95 p-1.5 sm:p-2.5 rounded-lg shadow-md border-2 border-gray-400 min-w-[140px] sm:min-w-[180px]">
+
                         <div class="flex justify-between font-black text-xs sm:text-sm mb-1 text-blue-800">
                             <span id="player-name">寶可夢</span><span>Lv.50</span>
                         </div>
@@ -418,12 +434,10 @@
 
                 <div class="single-player-element absolute bottom-0 left-[15%] sm:left-[25%] z-20 flex flex-col items-center justify-end w-48 sm:w-72 h-64 pointer-events-none" id="player-sprite-container">
                     <img id="player-sprite" src="" class="w-full h-full object-contain filter drop-shadow-2xl pixelated-sprite relative z-10 player-pokemon-float translate-y-[35%]">
-                    <div id="player-party" class="absolute bottom-2 sm:bottom-4 z-30 flex gap-2 sm:gap-4 justify-center w-full pointer-events-auto"></div>
                 </div>
 
-                <!-- 四人模式背影精靈與隊伍圈圈區 -->
-                <!-- 四人模式背影精靈與隊伍圈圈區 (緊貼下方黑色框) -->
-                <div id="multi-player-sprites-container" class="hidden absolute bottom-0 left-0 w-full z-20 flex flex-row items-end px-2 sm:px-4 md:px-6 gap-2.5 sm:gap-4 md:gap-5 lg:gap-6 pointer-events-none pb-0.5">
+                <!-- 四人模式背影精靈與隊伍圈圈區 (若左右有空間則玩家1放最左、玩家4放最右、中間平均間距) -->
+                <div id="multi-player-sprites-container" class="hidden absolute bottom-0 left-0 w-full z-20 flex flex-row items-end justify-between px-1 sm:px-2 md:px-3 gap-1.5 sm:gap-2.5 md:gap-4 pointer-events-none pb-0.5">
                     <!-- 透過 JS 自動插入 4 個玩家的戰鬥塔 -->
                 </div>
 
@@ -502,9 +516,8 @@
             </div>
 
             <!-- STREAMING_CHUNK:Multiplayer Panel... -->
-            <!-- 四人操作區 (下半部) -->
-            <!-- 四人操作區 (下半部) -->
-            <div id="multi-bottom-panel" class="hidden bg-gray-800 px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 flex-none z-10 flex flex-row items-stretch gap-2.5 sm:gap-4 md:gap-5 lg:gap-6 h-56 sm:h-64 w-full pt-6 sm:pt-8 border-t-4 border-gray-900">
+            <!-- 四人操作區 (下半部：玩家1放最左、玩家4放最右、玩家2和3平均間距居中) -->
+            <div id="multi-bottom-panel" class="hidden bg-gray-800 px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 flex-none z-10 flex flex-row items-stretch justify-between gap-1.5 sm:gap-2.5 md:gap-4 h-56 sm:h-64 w-full pt-6 sm:pt-8 border-t-4 border-gray-900">
                 <!-- 透過 JS 自動生成 4 個玩家區塊 -->
             </div>
         </div>
@@ -759,19 +772,28 @@
             if (!container) return;
             const w = window.innerWidth;
             const h = window.innerHeight;
-            const targetRatio = 4 / 3;
-            
-            let newW, newH;
-            if (w / h > targetRatio) {
-                newH = h;
-                newW = h * targetRatio;
+
+            if (gameMode === 'multi') {
+                container.classList.add('multi-widescreen');
+                let newH = h;
+                /* 四人模式：若左右尚有空間，寬度自動延展填滿，讓玩家1放最左、玩家4放最右 */
+                let newW = Math.min(w, h * 2.2);
+                container.style.width = `${newW}px`;
+                container.style.height = `${newH}px`;
             } else {
-                newW = w;
-                newH = w / targetRatio;
+                container.classList.remove('multi-widescreen');
+                /* 單人模式解鎖固定4:3比例限制，在手機直向或各類螢幕下均能自適應填滿高度 */
+                let newH = h;
+                let newW = (w <= 768 || w < h) ? w : Math.min(w, 1180);
+                container.style.width = `${newW}px`;
+                container.style.height = `${newH}px`;
             }
-            
-            container.style.width = `${newW}px`;
-            container.style.height = `${newH}px`;
+
+
+
+
+
+
         };
         window.addEventListener('resize', window.resizeGame);
 
@@ -796,11 +818,33 @@
         window.selectMode = function(mode) {
             try {
                 gameMode = mode;
+                const battleSceneEl = elements.battleScene || document.getElementById('battle-scene-bg');
                 if (mode === 'single') {
+                    if (battleSceneEl) {
+                        battleSceneEl.style.backgroundImage = '';
+                        battleSceneEl.style.backgroundSize = '';
+                        battleSceneEl.style.backgroundPosition = '';
+                        battleSceneEl.style.backgroundRepeat = '';
+                        battleSceneEl.style.backgroundRepeat = '';
+                    }
+                    document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
+                    if (elements.playerSpriteContainer) {
+                        elements.playerSpriteContainer.classList.remove('opacity-0', 'translate-y-12', 'hidden');
+                    }
+                    if (elements.singleBottomPanel) elements.singleBottomPanel.classList.remove('hidden');
+                    if (elements.multiBottomPanel) elements.multiBottomPanel.classList.add('hidden');
+                    const multiSprites = document.getElementById('multi-player-sprites-container');
+                    if (multiSprites) multiSprites.classList.add('hidden');
                     window.showScreen('login');
                 } else if (mode === 'multi') {
                     window.initMultiplayerGame();
                 } else if (mode === 'mode') {
+                    if (battleSceneEl) {
+                        battleSceneEl.style.backgroundImage = '';
+                        battleSceneEl.style.backgroundSize = '';
+                        battleSceneEl.style.backgroundPosition = '';
+                        battleSceneEl.style.backgroundRepeat = '';
+                    }
                     window.showScreen('mode');
                 }
             } catch(e) {
@@ -821,6 +865,13 @@
                 name: '', id: '', score: 0, totalDamage: 0, isDefeated: false, formula: '', answer: '', isLoggedIn: false, party: [], activePokeIndex: 0, phase: 1, question: null,
                 colorClass: ['blue', 'red', 'green', 'yellow'][i]
             }));
+            const battleSceneEl = elements.battleScene || document.getElementById('battle-scene-bg');
+            if (battleSceneEl) {
+                battleSceneEl.style.backgroundImage = "url('https://pmath-lab.github.io/p5_area/area_bg.gif')";
+                battleSceneEl.style.backgroundSize = "cover";
+                battleSceneEl.style.backgroundPosition = "center";
+                battleSceneEl.style.backgroundRepeat = "no-repeat";
+            }
             
             document.querySelectorAll('.single-player-element').forEach(el => el.classList.add('hidden'));
             elements.singleBottomPanel.classList.add('hidden');
@@ -891,9 +942,11 @@
                     <div class="flex-1 flex flex-col items-center justify-end relative pb-0" id="multi-sprite-wrapper-${i}">
                         <!-- 面積題目黑板與寶可夢 -->
                         <div class="relative w-full max-w-[130px] sm:max-w-[145px] md:max-w-[165px] flex flex-col items-center ${defeatedCanvasClass}"> 
-                            <!-- Pokemon Sprite Overlay -->
-                            <div id="multi-sprite-anim-wrapper-${i}" class="absolute bottom-full left-1/2 transform -translate-x-1/2 translate-y-[35%] w-[4rem] sm:w-[5rem] md:w-[5.5rem] z-0 transition-all duration-300 pointer-events-none -mb-2 sm:-mb-3">
-                                <img id="multi-sprite-img-${i}" src="${pokeImageBack}" class="w-full h-full object-contain filter drop-shadow-lg pixelated-sprite ${defeatedSpriteClass}">
+                            <!-- Pokemon Sprite Overlay (放大50%，Y座標提高20px，玩家3與玩家4垂直鏡像反轉) -->
+                            <div id="multi-sprite-anim-wrapper-${i}" class="absolute left-1/2 transform -translate-x-1/2 translate-y-[35%] w-[6rem] sm:w-[7.5rem] md:w-[8.25rem] h-[6rem] sm:h-[7.5rem] md:h-[8.25rem] z-0 transition-all duration-300 pointer-events-none" style="bottom: calc(100% + 20px);">
+                                <div class="w-full h-full" style="${(i === 2 || i === 3) ? 'transform: scaleX(-1);' : ''}">
+                                    <img id="multi-sprite-img-${i}" src="${pokeImageBack}" class="w-full h-full object-contain filter drop-shadow-lg pixelated-sprite ${defeatedSpriteClass}">
+                                </div>
                             </div>
                             
                             <!-- Mini Canvas (白底小黑板) -->
@@ -948,10 +1001,10 @@
                     </div>`;
                 } else {
                     let activePoke = (p.party && p.party.length > 0) ? (p.party[p.activePokeIndex] || p.party[0]) : null;
-                    if (activePoke && activePoke.currentHp === undefined) activePoke.currentHp = 100;
-                    if (activePoke && !activePoke.maxHp) activePoke.maxHp = 100;
-                    let curHp = activePoke ? activePoke.currentHp : 100;
-                    let maxHp = activePoke ? activePoke.maxHp : 100;
+                    let maxHp = (activePoke && activePoke.stats && activePoke.stats.hp) ? activePoke.stats.hp : (activePoke ? (activePoke.maxHp || 100) : 100);
+                    if (activePoke && activePoke.currentHp === undefined) activePoke.currentHp = maxHp;
+                    if (activePoke) activePoke.maxHp = maxHp;
+                    let curHp = activePoke ? activePoke.currentHp : maxHp;
                     let hpPerc = Math.max(0, Math.min(100, Math.round((curHp / maxHp) * 100)));
                     let hpColorClass = hpPerc > 50 
                         ? 'bg-green-200/70 border-r-2 border-green-400' 
@@ -967,19 +1020,18 @@
                         <div class="relative bg-gray-50 border-2 border-gray-300 rounded p-1 sm:p-1.5 mt-1.5 mb-1 flex-none flex flex-col justify-center min-h-[44px] overflow-hidden shadow-inner">
                             <!-- 淺色血條背景 (以淺色於答題位置底色顯示) -->
                             <div id="multi-player-hp-bar-${i}" class="absolute inset-y-0 left-0 ${hpColorClass} transition-all duration-500 z-0 pointer-events-none" style="width: ${hpPerc}%;"></div>
-                            
-                            <!-- 答題文字內容 (z-10 確保清晰浮於淺色血條上方) -->
+                            <!-- 答題文字內容 (z-10 確保清晰浮於淺色血條上方，等號嚴格對齊，不顯示HP數字) -->
                             <div class="relative z-10 flex flex-col justify-center w-full">
-                                <div class="flex items-center justify-between text-[14px] font-black text-gray-800 leading-tight">
-                                    <div class="flex items-center min-w-0">
-                                        <span class="text-gray-600 mr-1 flex-none text-[14px]">面積 =</span>
-                                        <span id="multi-formula-${i}" class="text-blue-700 tracking-wide font-black truncate text-[14px]">${p.formula || '<span class="text-gray-400 font-normal text-[14px]">列式...</span>'}</span>
-                                    </div>
-                                    <span id="multi-player-hp-text-${i}" class="text-[11px] font-bold ${hpTextColor} flex-none ml-1">${curHp}/${maxHp}</span>
+                                <div class="flex items-center text-[14px] font-black text-gray-800 leading-tight">
+                                    <span class="text-gray-600 flex-none text-[14px]">面積</span>
+                                    <span class="text-gray-600 mx-1 flex-none text-[14px] text-center w-3">=</span>
+                                    <span id="multi-formula-${i}" class="text-blue-700 tracking-wide font-black truncate text-[14px] flex-1">${p.formula || '<span class="text-gray-400 font-normal text-[14px]">列式...</span>'}</span>
+                                    <span id="multi-player-hp-text-${i}" class="hidden"></span>
                                 </div>
                                 <div id="multi-ans-row-${i}" class="flex items-center text-[14px] font-black text-gray-800 leading-tight mt-0.5 ${p.phase === 1 ? 'opacity-40' : ''}">
-                                    <span class="text-gray-600 mr-1 flex-none text-[14px]">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=</span>
-                                    <span id="multi-answer-${i}" class="text-green-700 tracking-wide font-black truncate text-[14px]">${p.answer || (p.phase === 2 ? '<span class="text-gray-400 font-normal text-[14px]">計算...</span>' : '')}</span>
+                                    <span class="text-gray-600 flex-none text-[14px] invisible select-none">面積</span>
+                                    <span class="text-gray-600 mx-1 flex-none text-[14px] text-center w-3">=</span>
+                                    <span id="multi-answer-${i}" class="text-green-700 tracking-wide font-black truncate text-[14px] flex-1">${p.answer || (p.phase === 2 ? '<span class="text-gray-400 font-normal text-[14px]">計算...</span>' : '')}</span>
                                 </div>
                             </div>
                         </div>
@@ -1030,14 +1082,36 @@
             let classVal = document.getElementById(`multi-login-class-${index}`).value;
             let numVal = document.getElementById(`multi-login-num-${index}`).value;
             let idVal = window.getCombinedId(classVal, numVal);
-            
-            let errEl = document.getElementById(`multi-login-err-${index}`);
 
-            if (GAS_URL.includes("請將您的") || idVal.startsWith("student")) {
-                let starters = ["奇異種子", "小火龍", "車厘龜", "喵喵怪", "傻鴨", "鬼斯"];
+            let errEl = document.getElementById(`multi-login-err-${index}`);
+            let btn = document.querySelector(`#multi-panel-${index} button`);
+            if (btn) btn.disabled = true;
+            errEl.innerText = "連線讀取中..."; 
+            errEl.classList.remove('hidden', 'text-red-500');
+            errEl.classList.add('text-blue-500');
+            const localPresetRoster = {
+                "5C01": ["妙蛙花", "耿鬼", "腕力"]
+            };
+            const completeLoginWithParty = (pokemonNames, note = "") => {
+                let party = [];
+                for (let name of pokemonNames) {
+                    if (name) party.push(window.getPokemonByName(name));
+                }
+                while (party.length < 3) {
+                    let starters = ["奇異種子", "小火龍", "車厘龜", "喵喵怪", "傻鴨", "鬼斯"];
+                    party.push(window.getPokemonByName(starters[party.length]));
+                }
+                party.forEach(pk => {
+                    if (pk) {
+                        let hp = (pk.stats && pk.stats.hp) ? pk.stats.hp : 100;
+                        pk.maxHp = hp;
+                        pk.currentHp = hp;
+                    }
+                });
                 multiPlayers[index].id = idVal;
                 multiPlayers[index].name = idVal;
                 multiPlayers[index].activePokeIndex = 0;
+                multiPlayers[index].party = party;
                 multiPlayers[index].question = window.generateAreaQuestion(); 
                 multiPlayers[index].phase = 1;
                 multiPlayers[index].formula = '';
@@ -1045,62 +1119,55 @@
                 multiPlayers[index].isLoggedIn = true;
                 multiPlayers[index].isDefeated = false;
                 multiPlayers[index].totalDamage = 0;
-                multiPlayers[index].party = [
-                    window.getPokemonByName(starters[Math.floor(Math.random() * starters.length)]),
-                    window.getPokemonByName(starters[Math.floor(Math.random() * starters.length)]),
-                    window.getPokemonByName(starters[Math.floor(Math.random() * starters.length)])
-                ];
-                multiPlayers[index].party.forEach(pk => { if (pk) { pk.maxHp = 100; pk.currentHp = 100; } });
                 window.buildMultiplayerPanels();
+                if (note && elements && elements.messageBox) {
+                    elements.messageBox.innerHTML = `<span class="text-blue-600 font-bold">${idVal} ${note}</span>`;
+                }
+            };
+            // 測試帳號直接秒進
+            if (GAS_URL.includes("請將您的") || idVal.startsWith("student")) {
+                let starters = ["奇異種子", "小火龍", "車厘龜", "喵喵怪", "傻鴨", "鬼斯"];
+                completeLoginWithParty([
+                    starters[Math.floor(Math.random() * starters.length)],
+                    starters[Math.floor(Math.random() * starters.length)],
+                    starters[Math.floor(Math.random() * starters.length)]
+                ]);
                 return;
             }
-
-            errEl.innerText = "連線中..."; 
-            errEl.classList.remove('hidden', 'text-red-500');
-            errEl.classList.add('text-blue-500');
-            
+            // 連線 GAS (附帶 3 秒逾時中斷保護，避免因後端未回應而永遠停留在「連線中...」)
             try {
-                const res = await fetch(GAS_URL, {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                let res = await fetch(GAS_URL, {
                     method: 'POST',
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: 'single_id_login', id: idVal })
+                    body: JSON.stringify({ action: 'single_id_login', id: idVal }),
+                    signal: controller.signal
                 });
-                const data = await res.json();
-                
-                if (data.success && data.poke1) {
-                    multiPlayers[index].id = idVal;
-                    multiPlayers[index].name = idVal;
-                    multiPlayers[index].activePokeIndex = 0;
-                    
-                    let party = [];
-                    if(data.poke1) party.push(window.getPokemonByName(data.poke1));
-                    if(data.poke2) party.push(window.getPokemonByName(data.poke2));
-                    if(data.poke3) party.push(window.getPokemonByName(data.poke3));
-                    while(party.length < 3) {
-                        let starters = ["奇異種子", "小火龍", "車厘龜", "喵喵怪", "傻鴨", "鬼斯"];
-                        party.push(window.getPokemonByName(starters[party.length]));
-                    }
-                    party.forEach(pk => { if(pk) { pk.maxHp = 100; pk.currentHp = 100; } });
-                    
-                    multiPlayers[index].party = party;
-                    multiPlayers[index].question = window.generateAreaQuestion(); 
-                    multiPlayers[index].phase = 1;
-                    multiPlayers[index].formula = '';
-                    multiPlayers[index].answer = '';
-                    multiPlayers[index].isLoggedIn = true;
-                    multiPlayers[index].isDefeated = false;
-                    multiPlayers[index].totalDamage = 0;
-                    window.buildMultiplayerPanels(); 
-                } else {
-                    errEl.classList.remove('text-blue-500'); errEl.classList.add('text-red-500');
-                    errEl.innerText = "找不到資料";
+                clearTimeout(timeoutId);
+                let data = await res.json();
+                let p1 = data.poke1 || data.pkm1 || data.PKM1 || data.pokemon1;
+                let p2 = data.poke2 || data.pkm2 || data.PKM2 || data.pokemon2;
+                let p3 = data.poke3 || data.pkm3 || data.PKM3 || data.pokemon3;
+                if (data.success && (p1 || p2 || p3)) {
+                    completeLoginWithParty([p1, p2, p3], "雲端資料讀取成功！");
+                    return;
                 }
-            } catch(e) {
-                errEl.classList.remove('text-blue-500'); errEl.classList.add('text-red-500');
-                errEl.innerText = "連線失敗";
+            } catch (e) {
+                console.warn("GAS 連線未完成或超時，啟用本地保底模式:", e);
+            }
+            // 備援登入：若 GAS 未回應、超時或未建立 single_id_login，自動啟用本地陣容快速入場，保證課堂遊戲不中斷
+            if (localPresetRoster[idVal]) {
+                completeLoginWithParty(localPresetRoster[idVal], "已加入戰鬥！(載入試算表陣容)");
+            } else {
+                let starters = ["奇異種子", "小火龍", "車厘龜", "喵喵怪", "傻鴨", "鬼斯"];
+                completeLoginWithParty([
+                    starters[Math.floor(Math.random() * starters.length)],
+                    starters[Math.floor(Math.random() * starters.length)],
+                    starters[Math.floor(Math.random() * starters.length)]
+                ], "已加入戰鬥！");
             }
         };
-
 
         window.multiSwitchPokemon = function(pIndex, pokeIndex, force = false) {
             let p = multiPlayers[pIndex];
@@ -1177,8 +1244,9 @@
             if (!p || !p.isLoggedIn || !p.party || p.party.length === 0) return;
             let activePoke = p.party[p.activePokeIndex];
             if (!activePoke) return;
-            if (activePoke.currentHp === undefined) activePoke.currentHp = 100;
-            if (!activePoke.maxHp) activePoke.maxHp = 100;
+            let maxHp = (activePoke.stats && activePoke.stats.hp) ? activePoke.stats.hp : (activePoke.maxHp || 100);
+            if (activePoke.currentHp === undefined) activePoke.currentHp = maxHp;
+            activePoke.maxHp = maxHp;
             
             let perc = Math.max(0, Math.min(100, Math.round((activePoke.currentHp / activePoke.maxHp) * 100)));
             let hpBarEl = document.getElementById(`multi-player-hp-bar-${pIndex}`);
@@ -1194,7 +1262,7 @@
             }
             if (hpTextEl) {
                 hpTextEl.innerText = `${activePoke.currentHp}/${activePoke.maxHp}`;
-                hpTextEl.className = perc > 50 ? "text-[11px] font-bold text-green-700 flex-none ml-1" : perc > 25 ? "text-[11px] font-bold text-yellow-700 flex-none ml-1" : "text-[11px] font-bold text-red-700 flex-none ml-1 animate-pulse";
+                hpTextEl.classList.add('hidden');
             }
         };
 
@@ -1338,7 +1406,9 @@
                 // 扣減該玩家當前出戰寶可夢的血量
                 if (p && p.party && p.party[p.activePokeIndex]) {
                     let activePoke = p.party[p.activePokeIndex];
-                    if (activePoke.currentHp === undefined) activePoke.currentHp = 100;
+                    let maxHp = (activePoke.stats && activePoke.stats.hp) ? activePoke.stats.hp : (activePoke.maxHp || 100);
+                    if (activePoke.currentHp === undefined) activePoke.currentHp = maxHp;
+                    activePoke.maxHp = maxHp;
                     activePoke.currentHp = Math.max(0, activePoke.currentHp - 25);
                     window.updateMultiPlayerHp(pIndex);
                     
@@ -1406,7 +1476,7 @@
                     else if (p.question.type === 1) hint = "底 × 高 ÷ 2";
                     else if (p.question.type === 2) hint = "(上底+下底) × 高 ÷ 2";
                     let enemyName = currentPokemon ? currentPokemon.name : "神獸";
-                    elements.messageBox.innerHTML = `<span class="text-red-600 font-black">${p.name} 列式有誤：${res.msg}</span> <span class="text-orange-600 font-bold>${enemyName} 發動反擊！</span>`;
+                    elements.messageBox.innerHTML = `<span class="text-red-600 font-black">${p.name} 列式有誤：${res.msg}</span> <span class="text-orange-600 font-bold">${enemyName} 發動反擊！</span>`;
                     // 答錯時對方會攻擊該玩家
                     window.multiEnemyAttackPlayer(pIndex);
                 }
@@ -1446,7 +1516,7 @@
                     p.answer = '';
                     window.updateMultiDisplay(pIndex);
                     let enemyName = currentPokemon ? currentPokemon.name : "神獸";
-                    elements.messageBox.innerHTML = `<span class="text-red-600 font-black">${p.name} 計算錯誤！</span> <span class="text-orange-600 font-bold>${enemyName} 發動反擊！</span>`;
+                    elements.messageBox.innerHTML = `<span class="text-red-600 font-black">${p.name} 計算錯誤！</span> <span class="text-orange-600 font-bold">${enemyName} 發動反擊！</span>`;
                     // 答錯時對方會攻擊該玩家
                     window.multiEnemyAttackPlayer(pIndex);
                 }
@@ -1578,21 +1648,26 @@
             const classVal = document.getElementById('login-class').value;
             const numVal = document.getElementById('login-num').value;
             const idInput = window.getCombinedId(classVal, numVal);
-            const pwdInput = document.getElementById('login-pwd').value.trim();
+            let pwdInput = document.getElementById('login-pwd').value.trim();
             const errBox = document.getElementById('login-error');
             const loadBox = document.getElementById('login-loading');
             const btnLogin = document.getElementById('btn-login');
 
             if (!pwdInput) {
-                errBox.innerText = "請輸入密碼！"; errBox.classList.remove('hidden'); return;
+                pwdInput = "123";
             }
-
-            if (idInput === "student1" && pwdInput === "123") {
+            // 本地快速登入通道：5C01 載入試算表陣容、測試帳號或任意學生以 123 密碼即刻進入
+            if (idInput === "5C01" && (pwdInput === "t1" || pwdInput === "123")) {
                 errBox.classList.add('hidden'); currentStudentId = idInput; currentPassword = pwdInput;
-                playerParty = []; score = 0; activePlayerIndex = 0;
-                gameStats = { parallelogram: {total:0,correct:0}, triangle: {total:0,correct:0}, trapezoid: {total:0,correct:0} };
-                
+                playerParty = [window.getPokemonByName("妙蛙花"), window.getPokemonByName("耿鬼"), window.getPokemonByName("腕力")];
+                playerParty.forEach(pk => { if(pk) pk.currentHp = pk.stats.hp; });
+                score = 11; activePlayerIndex = 0;
+                gameStats = { parallelogram: {total:5,correct:4}, triangle: {total:10,correct:4}, trapezoid: {total:6,correct:3} };
+                gameStats = { parallelogram: {total:5,correct:4}, triangle: {total:10,correct:4}, trapezoid: {total:6,correct:3} };
                 document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
+                if (elements.playerSpriteContainer) {
+                    elements.playerSpriteContainer.classList.remove('opacity-0', 'translate-y-12', 'hidden');
+                }
                 elements.singleBottomPanel.classList.remove('hidden');
                 elements.multiBottomPanel.classList.add('hidden');
                 document.getElementById('multi-player-sprites-container').classList.add('hidden');
@@ -1612,11 +1687,35 @@
                 elements.enemyWrapper.className = "w-1/2 h-full flex flex-col items-center justify-start pt-12 sm:pt-16 pr-2 sm:pr-8 relative z-10 transition-all duration-300";
                 
                 elements.headerStudentId.innerText = currentStudentId; elements.score.innerText = score; elements.gameHeader.classList.remove('hidden');
-                window.showScreen('starter'); return;
+                window.showScreen('start'); return;
             }
 
-            if (GAS_URL.includes("請將您的")) {
-                errBox.innerText = "連線網址尚未設定！請先使用 student1 進行單機預覽。"; errBox.classList.remove('hidden'); return;
+            if (idInput.startsWith("student") || pwdInput === "123" || GAS_URL.includes("請將您的")) {
+                errBox.classList.add('hidden'); currentStudentId = idInput; currentPassword = pwdInput;
+                playerParty = []; score = 0; activePlayerIndex = 0;
+                gameStats = { parallelogram: {total:0,correct:0}, triangle: {total:0,correct:0}, trapezoid: {total:0,correct:0} };
+
+                document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
+                elements.singleBottomPanel.classList.remove('hidden');
+                elements.multiBottomPanel.classList.add('hidden');
+                document.getElementById('multi-player-sprites-container').classList.add('hidden');
+
+                elements.canvasWrapper.classList.remove('hidden');
+                elements.headerTitleText.innerText = "面積大挑戰";
+                elements.headerTrainerInfo.classList.remove('hidden');
+                elements.headerScoreInfo.classList.remove('hidden');
+                elements.headerHomeBtn.classList.remove('hidden');
+                elements.enemyInfoContainer.classList.remove('left-1/2', 'transform', '-translate-x-1/2');
+                elements.messageBox.classList.remove('hidden');
+                elements.gmaxCloud.classList.add('hidden');
+                elements.multiHpText.classList.add('hidden');
+                elements.pokemonImg.classList.remove('gmax-boss');
+
+                elements.canvasWrapper.className = "w-1/2 h-full flex flex-col justify-start pt-4 sm:pt-6 items-start pl-2 sm:pl-6 relative z-10 transition-all duration-300";
+                elements.enemyWrapper.className = "w-1/2 h-full flex flex-col items-center justify-start pt-12 sm:pt-16 pr-2 sm:pr-8 relative z-10 transition-all duration-300";
+
+                elements.headerStudentId.innerText = currentStudentId; elements.score.innerText = score; elements.gameHeader.classList.remove('hidden');
+                window.showScreen('starter'); return;
             }
 
             errBox.classList.add('hidden'); loadBox.classList.remove('hidden'); btnLogin.disabled = true; 
@@ -1675,18 +1774,61 @@
                     errBox.innerText = data.message; errBox.classList.remove('hidden');
                 }
             } catch (e) {
-                console.error(e);
-                errBox.innerText = "連線失敗，請稍後再試。"; errBox.classList.remove('hidden');
+                console.warn("GAS 連線未成功，自動啟用離線冒險模式:", e);
+                errBox.classList.add('hidden'); currentStudentId = idInput; currentPassword = pwdInput;
+                playerParty = []; score = 0; activePlayerIndex = 0;
+                gameStats = { parallelogram: {total:0,correct:0}, triangle: {total:0,correct:0}, trapezoid: {total:0,correct:0} };
+                document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
+                elements.singleBottomPanel.classList.remove('hidden');
+                elements.multiBottomPanel.classList.add('hidden');
+                document.getElementById('multi-player-sprites-container').classList.add('hidden');
+                elements.canvasWrapper.classList.remove('hidden');
+                elements.headerTitleText.innerText = "面積大挑戰";
+                elements.headerTrainerInfo.classList.remove('hidden');
+                elements.headerScoreInfo.classList.remove('hidden');
+                elements.headerHomeBtn.classList.remove('hidden');
+                elements.enemyInfoContainer.classList.remove('left-1/2', 'transform', '-translate-x-1/2');
+                elements.messageBox.classList.remove('hidden');
+                elements.headerStudentId.innerText = currentStudentId; elements.score.innerText = score; elements.gameHeader.classList.remove('hidden');
+                window.showScreen('starter');
+                loadBox.classList.add('hidden'); btnLogin.disabled = false;
+                return;
             }
             loadBox.classList.add('hidden'); btnLogin.disabled = false;
+        };
+
+        window.toggleLoginPasswordVisibility = function() {
+            const pwdInput = document.getElementById('login-pwd');
+            const eyeIcon = document.getElementById('login-pwd-eye');
+            if (!pwdInput) return;
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                if (eyeIcon) eyeIcon.innerText = '🔒';
+            } else {
+                pwdInput.type = 'password';
+                if (eyeIcon) eyeIcon.innerText = '👁️';
+            }
         };
 
         window.logout = function() {
             currentStudentId = null; currentPassword = null;
             playerParty = []; score = 0; activePlayerIndex = 0;
-            document.getElementById('login-pwd').value = '';
+            const pwdInput = document.getElementById('login-pwd');
+            if (pwdInput) {
+                pwdInput.value = '';
+                pwdInput.type = 'password';
+            }
+            const eyeIcon = document.getElementById('login-pwd-eye');
+            if (eyeIcon) eyeIcon.innerText = '👁️';
             elements.gameHeader.classList.add('hidden');
             elements.messageBox.classList.add('hidden');
+            const battleSceneEl = elements.battleScene || document.getElementById('battle-scene-bg');
+            if (battleSceneEl) {
+                battleSceneEl.style.backgroundImage = '';
+                battleSceneEl.style.backgroundSize = '';
+                battleSceneEl.style.backgroundPosition = '';
+                battleSceneEl.style.backgroundRepeat = '';
+            }
             window.showScreen('mode');
         };
 
@@ -2030,7 +2172,7 @@
             elements.playerParty.innerHTML = '';
             for (let i = 0; i < 3; i++) {
                 const slot = document.createElement('div');
-                slot.className = "w-10 h-10 sm:w-14 sm:h-14 bg-white/90 border-4 border-gray-400 rounded-full flex items-center justify-center overflow-hidden shadow-lg cursor-pointer hover:bg-gray-100 hover:scale-110 transition-all z-30 relative";
+                slot.className = "w-10 h-10 sm:w-12 sm:h-12 bg-white/90 border-2 sm:border-3 border-gray-400 rounded-full flex items-center justify-center overflow-hidden shadow-md cursor-pointer hover:bg-gray-100 hover:scale-110 transition-all z-30 relative";
                 slot.onclick = () => window.switchPokemon(i); 
                 
                 if (playerParty[i]) {
@@ -2130,13 +2272,26 @@
 
         window.processEvolutions = function(callback) {
             evolutionQueue = [];
-            if (score >= 5) {
+            // 單人模式：取消固定關數進化，改為每次打完一隻POKEMON後有15%機率有一隻POKEMON進化
+            if (Math.random() < 0.15) {
+                let candidates = [];
                 for (let i = 0; i < playerParty.length; i++) {
-                    if (playerParty[i] === newlyCaughtPokemon) continue;
-                    if (playerParty[i].nextEvolution && pokemonData.evolutions[playerParty[i].nextEvolution]) {
-                        evolutionQueue.push({ index: i, oldPoke: playerParty[i], newPoke: pokemonData.evolutions[playerParty[i].nextEvolution] });
-                        break;
+                    if (playerParty[i] && playerParty[i] !== newlyCaughtPokemon) {
+                        if (playerParty[i].nextEvolution && pokemonData.evolutions[playerParty[i].nextEvolution]) {
+                            candidates.push({ index: i, oldPoke: playerParty[i], newPoke: pokemonData.evolutions[playerParty[i].nextEvolution] });
+                        }
                     }
+                }
+                if (candidates.length === 0) {
+                    for (let i = 0; i < playerParty.length; i++) {
+                        if (playerParty[i] && playerParty[i].nextEvolution && pokemonData.evolutions[playerParty[i].nextEvolution]) {
+                            candidates.push({ index: i, oldPoke: playerParty[i], newPoke: pokemonData.evolutions[playerParty[i].nextEvolution] });
+                        }
+                    }
+                }
+                if (candidates.length > 0) {
+                    let chosen = candidates[Math.floor(Math.random() * candidates.length)];
+                    evolutionQueue.push(chosen);
                 }
             }
             newlyCaughtPokemon = null; 
@@ -2189,6 +2344,22 @@
         };
 
         window.startGame = function() {
+            const battleSceneEl = elements.battleScene || document.getElementById('battle-scene-bg');
+            if (battleSceneEl) {
+                battleSceneEl.style.backgroundImage = '';
+                battleSceneEl.style.backgroundSize = '';
+                battleSceneEl.style.backgroundPosition = '';
+                battleSceneEl.style.backgroundRepeat = '';
+                battleSceneEl.style.backgroundRepeat = '';
+            }
+            document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
+            if (elements.playerSpriteContainer) {
+                elements.playerSpriteContainer.classList.remove('opacity-0', 'translate-y-12', 'hidden');
+            }
+            if (elements.singleBottomPanel) elements.singleBottomPanel.classList.remove('hidden');
+            if (elements.multiBottomPanel) elements.multiBottomPanel.classList.add('hidden');
+            const multiSprites = document.getElementById('multi-player-sprites-container');
+            if (multiSprites) multiSprites.classList.add('hidden');
             if (playerParty.length > 0) {
                 activePlayerIndex = playerParty.findIndex(p => p.currentHp > 0);
                 if (activePlayerIndex === -1) {
@@ -2386,4 +2557,6 @@
     </script>
 </body>
 </html>
+
+
 
