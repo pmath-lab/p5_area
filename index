@@ -1,0 +1,2389 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>寶可夢面積計算對戰！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#dcfce7 1px, transparent 1px);
+            background-size: 20px 20px;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .game-container {
+            width: 100%;
+            max-width: 1180px;
+            height: 100%;
+            max-height: 100dvh;
+            margin: 0 auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-radius: 16px;
+            overflow: hidden;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        /* 統一文字大小為 14px */
+        body, button, input, select {
+            font-size: 14px;
+        }
+        #multi-bottom-panel, #multi-bottom-panel * {
+            font-size: 14px !important;
+        }
+
+        /* STREAMING_CHUNK:Configuring animations... */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0px); }
+        }
+        .pokemon-float { animation: float 3s ease-in-out infinite; }
+
+        @keyframes playerFloat {
+            0% { transform: translateY(35%); }
+            50% { transform: translateY(28%); }
+            100% { transform: translateY(35%); }
+        }
+        .player-pokemon-float { animation: playerFloat 3s ease-in-out infinite; }
+
+        /* 四人模式專屬浮動 */
+        @keyframes multiPlayerFloat {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+            100% { transform: translateY(0px); }
+        }
+        .multi-player-float { animation: multiPlayerFloat 2.5s ease-in-out infinite; }
+        
+        /* 極巨化神獸專屬特效 (優化縮放與高度，確保位於上方且不遮擋下方玩家精靈) */
+        @keyframes gmaxFloat {
+            0% { transform: scale(1.15) translateY(0px); }
+            50% { transform: scale(1.15) translateY(-8px); }
+            100% { transform: scale(1.15) translateY(0px); }
+        }
+        .gmax-boss {
+            animation: gmaxFloat 4s ease-in-out infinite !important;
+            filter: drop-shadow(0 0 32px rgba(255, 0, 0, 0.85)) contrast(1.12) brightness(0.95) !important;
+            z-index: 10;
+            height: clamp(230px, 40vh, 340px) !important;
+            width: auto !important;
+            max-width: 90% !important;
+        }
+
+        .gmax-boss ~ #pokemon-shadow {
+            width: clamp(180px, 30vw, 300px) !important;
+            height: 18px !important;
+            bottom: -8px !important;
+        }
+        
+        /* 極巨化雲朵 (紅雲特效偽元素) */
+        .gmax-clouds::before {
+            content: "";
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150%;
+            height: 40px;
+            background: radial-gradient(ellipse at center, rgba(255,50,50,0.8) 0%, rgba(255,50,50,0) 70%);
+            filter: blur(8px);
+            z-index: 15;
+            border-radius: 50%;
+            animation: pulse-cloud 2s infinite alternate;
+            pointer-events: none;
+        }
+        @keyframes pulse-cloud {
+            0% { opacity: 0.6; transform: translateX(-50%) scaleX(1); }
+            100% { opacity: 1; transform: translateX(-50%) scaleX(1.1); }
+        }
+
+        .pokemon-sprite {
+            filter: drop-shadow(0 10px 8px rgba(0,0,0,0.2));
+            transition: all 0.3s ease;
+        }
+        .pokemon-hit {
+            animation: shake 0.5s !important;
+            filter: brightness(2) drop-shadow(0 10px 8px rgba(255,0,0,0.5));
+        }
+        /* 極巨化受傷特效 */
+        .gmax-hit {
+            animation: shake 0.5s !important;
+            filter: brightness(2) drop-shadow(0 0 30px rgba(255,255,255,0.8)) !important;
+        }
+
+        @keyframes enemyTackle {
+            0% { transform: translate(0, 0) scale(1); }
+            30% { transform: translate(20px, -20px) scale(1.05); } 
+            50% { transform: translate(-50px, 50px) scale(1.3); } 
+            100% { transform: translate(0, 0) scale(1); }
+        }
+        .pokemon-attack {
+            animation: enemyTackle 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+            z-index: 50;
+        }
+
+        @keyframes playerTackle {
+            0% { transform: translate(0, 0) scale(1); }
+            30% { transform: translate(-10px, 10px) scale(1.05); } 
+            50% { transform: translate(40px, -40px) scale(1.2); } 
+            100% { transform: translate(0, 0) scale(1); }
+        }
+        .player-attack-anim {
+            animation: playerTackle 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+            z-index: 50;
+        }
+
+        /* 四人模式專屬：朝向畫面中心 (神獸) 撞擊之動畫備援 */
+        @keyframes playerTackleP0 {
+            0% { transform: translate(calc(-50% + 0px), calc(35% + 0px)) scale(1); }
+            30% { transform: translate(calc(-50% - 8px), calc(35% + 9px)) scale(1.05); } 
+            50% { transform: translate(calc(-50% + 40px), calc(35% - 45px)) scale(1.2); } 
+            100% { transform: translate(calc(-50% + 0px), calc(35% + 0px)) scale(1); }
+        }
+        @keyframes playerTackleP1 {
+            0% { transform: translate(calc(-50% + 0px), calc(35% + 0px)) scale(1); }
+            30% { transform: translate(calc(-50% - 3px), calc(35% + 12px)) scale(1.05); } 
+            50% { transform: translate(calc(-50% + 16px), calc(35% - 58px)) scale(1.2); } 
+            100% { transform: translate(calc(-50% + 0px), calc(35% + 0px)) scale(1); }
+        }
+        @keyframes playerTackleP2 {
+            0% { transform: translate(calc(-50% + 0px), calc(35% + 0px)) scale(1); }
+            30% { transform: translate(calc(-50% + 3px), calc(35% + 12px)) scale(1.05); } 
+            50% { transform: translate(calc(-50% - 16px), calc(35% - 58px)) scale(1.2); } 
+            100% { transform: translate(calc(-50% + 0px), calc(35% + 0px)) scale(1); }
+        }
+        @keyframes playerTackleP3 {
+            0% { transform: translate(calc(-50% + 0px), calc(35% + 0px)) scale(1); }
+            30% { transform: translate(calc(-50% + 8px), calc(35% + 9px)) scale(1.05); } 
+            50% { transform: translate(calc(-50% - 40px), calc(35% - 45px)) scale(1.2); } 
+            100% { transform: translate(calc(-50% + 0px), calc(35% + 0px)) scale(1); }
+        }
+        .multi-attack-p0 { animation: playerTackleP0 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) !important; z-index: 50; }
+        .multi-attack-p1 { animation: playerTackleP1 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) !important; z-index: 50; }
+        .multi-attack-p2 { animation: playerTackleP2 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) !important; z-index: 50; }
+        .multi-attack-p3 { animation: playerTackleP3 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) !important; z-index: 50; }
+
+        .player-hit { animation: playerFlash 0.5s; }
+        @keyframes playerFlash {
+            0%, 100% { background-color: transparent; }
+            25%, 75% { background-color: rgba(239, 68, 68, 0.4); }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-5deg); }
+            50% { transform: translateX(5px) rotate(5deg); }
+            75% { transform: translateX(-5px) rotate(-5deg); }
+            100% { transform: translateX(0); }
+        }
+        .shake { animation: shake 0.4s !important; }
+
+        @keyframes catch-throw {
+            0% { transform: translate(150px, 150px) scale(0.2) rotate(0deg); opacity: 0; }
+            50% { transform: translate(50px, -80px) scale(1.2) rotate(180deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1) rotate(360deg); opacity: 1; }
+        }
+        @keyframes catch-wobble {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            25% { transform: translate(-50%, -50%) rotate(-20deg); }
+            50% { transform: translate(-50%, -50%) rotate(0deg); }
+            75% { transform: translate(-50%, -50%) rotate(20deg); }
+        }
+        .pokeball-throw { animation: catch-throw 1s cubic-bezier(0.2, 0.8, 0.4, 1) forwards, catch-wobble 1s ease-in-out 1s infinite; }
+
+        .animate-encounter {
+            display: block !important;
+            pointer-events: auto !important;
+            animation: wildEncounter 2.2s forwards;
+            background-color: black;
+        }
+        @keyframes wildEncounter {
+            0% { opacity: 0; } 10% { opacity: 1; } 20% { opacity: 0; } 30% { opacity: 1; }
+            40% { opacity: 0; } 50% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; }
+        }
+
+        /* STREAMING_CHUNK:Styling buttons and utilities... */
+        .btn-game { box-shadow: 0 4px 0 rgba(0,0,0,0.3); transition: all 0.1s; }
+        .btn-game:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0px 0 rgba(0,0,0,0.3); }
+        .btn-game:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-op { box-shadow: 0 3px 0 rgba(0,0,0,0.2); }
+        .btn-op:active { transform: translateY(3px); box-shadow: 0 0px 0 rgba(0,0,0,0.2); }
+
+        .hidden { display: none !important; }
+        
+        .board-shadow { box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.1); }
+        
+        .fainted { filter: grayscale(100%) brightness(0.6); }
+        .pixelated-sprite { image-rendering: pixelated; }
+        
+        select {
+            cursor: pointer;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.2rem center;
+            background-size: 1em;
+        }
+    </style>
+</head>
+<body class="h-[100dvh] w-screen overflow-hidden p-0 sm:p-2 md:p-3 flex items-center justify-center bg-green-50 select-none">
+
+<div id="game-container" class="game-container w-full h-full max-h-[100dvh] flex flex-col justify-between relative overflow-hidden sm:border-4 border-gray-800">
+        
+        <!-- STREAMING_CHUNK:Mode Selection Screen... -->
+        <!-- 模式選擇畫面 -->
+        <div id="mode-screen" class="p-4 sm:p-6 text-center bg-green-50 flex-1 flex flex-col justify-center items-center overflow-y-auto z-50 absolute inset-0">
+            <button onclick="window.toggleFullscreen()" class="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-700 hover:text-black font-black text-xs sm:text-sm px-3 py-1.5 rounded-xl border-2 border-gray-400 shadow-md flex items-center gap-1.5 z-50 transition-all hover:scale-105 active:scale-95">
+                <span>⛶</span><span class="fs-text">全螢幕</span>
+            </button>
+            <h1 class="text-5xl sm:text-6xl font-black text-red-600 mb-2 drop-shadow-md tracking-widest">寶可夢</h1>
+            <h2 class="text-3xl sm:text-4xl font-black text-gray-800 mb-10 drop-shadow-sm">面積計算對戰！</h2>
+            
+            <div class="flex flex-col gap-5 w-full max-w-sm">
+                <button onclick="window.selectMode('single')" class="btn-game bg-blue-500 text-white font-black py-5 px-6 rounded-2xl text-2xl border-2 border-blue-700 shadow-lg flex items-center justify-center gap-3">
+                    👤 單人過關模式
+                </button>
+                <button onclick="window.selectMode('multi')" class="btn-game bg-purple-500 text-white font-black py-5 px-6 rounded-2xl text-2xl border-2 border-purple-700 shadow-lg flex items-center justify-center gap-3">
+                    ⚔️ 四人極巨化討伐戰
+                </button>
+            </div>
+            <p class="mt-8 text-gray-500 font-bold text-sm">請選擇遊玩模式</p>
+        </div>
+
+        <!-- STREAMING_CHUNK:Building Login layer... -->
+        <!-- 登入畫面 (單人專用) -->
+        <div id="login-screen" class="hidden p-4 sm:p-6 text-center bg-green-50 flex-1 flex flex-col justify-center items-center overflow-y-auto z-50 absolute inset-0">
+            <h2 class="text-3xl sm:text-4xl font-black text-gray-800 mb-6 drop-shadow-sm flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                單人冒險登入
+            </h2>
+            <div class="bg-white p-6 rounded-2xl shadow-lg border-4 border-gray-300 w-full max-w-sm mb-6 flex flex-col gap-4">
+                <div>
+                    <label class="block text-left text-sm font-bold text-gray-700 mb-1">班級與座號 (登入 ID)</label>
+                    <div class="flex gap-2">
+                        <select id="login-class" class="flex-1 border-2 border-gray-300 rounded-lg p-2.5 font-bold text-gray-800 focus:border-blue-500 focus:outline-none bg-white text-center pr-8"></select>
+                        <select id="login-num" class="flex-1 border-2 border-gray-300 rounded-lg p-2.5 font-bold text-gray-800 focus:border-blue-500 focus:outline-none bg-white text-center pr-8"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-left text-sm font-bold text-gray-700 mb-1">密碼</label>
+                    <input type="password" id="login-pwd" inputmode="numeric" pattern="[0-9]*" class="w-full border-2 border-gray-300 rounded-lg p-2.5 font-bold text-gray-800 focus:border-blue-500 focus:outline-none text-center" placeholder="請輸入密碼">
+                </div>
+                <div id="login-error" class="text-red-500 font-bold text-sm hidden bg-red-50 p-2 rounded border border-red-200">帳號或密碼錯誤！</div>
+                <div id="login-loading" class="text-blue-500 font-bold text-sm hidden">連接雲端庫中...</div>
+                <div class="text-sm font-bold text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 mt-2">提示：測試請選「測試」+「1號」，密碼 123</div>
+            </div>
+            <div class="flex flex-col gap-3 w-full max-w-sm">
+                <button onclick="window.handleLogin()" id="btn-login" class="w-full btn-game bg-blue-500 text-white font-black py-3 px-4 rounded-xl text-lg border-2 border-blue-700 shadow-lg">登入遊玩</button>
+                <button onclick="window.selectMode('mode')" class="w-full text-gray-500 font-bold py-2 hover:text-gray-700 underline">返回</button>
+            </div>
+        </div>
+
+        <div id="replace-modal" class="hidden absolute inset-0 z-[100] bg-black/80 flex flex-col items-center justify-center p-4">
+            <div class="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-sm text-center shadow-2xl border-4 border-gray-700">
+                <h3 class="text-xl sm:text-2xl font-black text-gray-800 mb-2">隊伍已滿！</h3>
+                <p class="text-sm sm:text-base text-gray-600 mb-4">你想用新收服的 <span id="new-pokemon-name" class="font-bold text-red-600"></span> 替換誰呢？</p>
+                <div class="grid grid-cols-3 gap-2 mb-4" id="party-replace-list"></div>
+                <div class="flex flex-col items-center border-t-2 border-dashed border-gray-300 pt-4 mb-4">
+                    <p class="text-xs text-gray-500 mb-1">新寶可夢</p>
+                    <img id="new-pokemon-img" src="" class="w-16 h-16 object-contain filter drop-shadow-md">
+                </div>
+                <button onclick="window.discardNewPokemon()" class="w-full btn-game bg-gray-500 text-white font-bold py-2 px-4 rounded-xl text-lg border-2 border-gray-700">不替換 (放生)</button>
+            </div>
+        </div>
+
+        <div id="encounter-overlay" class="hidden absolute inset-0 z-50 pointer-events-none"></div>
+
+        <!-- STREAMING_CHUNK:Header & Message Box... -->
+        <header id="game-header" class="hidden bg-red-600 text-white p-2 sm:p-3 border-b-4 border-red-800 flex justify-between items-center relative z-20 flex-none">
+            <h1 class="text-lg sm:text-xl font-black tracking-wider flex items-center gap-1 sm:gap-2 text-shadow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                <span id="header-title-text">面積大挑戰</span>
+            </h1>
+            <div class="flex items-center gap-2">
+                <div id="header-trainer-info" class="font-bold text-red-100 text-xs sm:text-sm mr-1">訓練家: <span id="header-student-id">---</span></div>
+                <div id="header-score-info" class="font-bold bg-white text-red-600 px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm rounded-full border-2 border-red-800 shadow-inner">答對: <span id="score-display">0</span> 題</div>
+                <button id="header-fs-btn" onclick="window.toggleFullscreen()" class="bg-white text-gray-800 px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-black rounded-lg border-2 border-red-800 shadow hover:bg-gray-100 active:translate-y-[2px] flex items-center gap-1">⛶ <span class="fs-text">全螢幕</span></button>
+                <button id="header-home-btn" onclick="window.logout()" class="hidden bg-white text-red-700 px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-black rounded-lg border-2 border-red-800 shadow hover:bg-gray-100 active:translate-y-[2px]">退出</button>
+            </div>
+        </header>
+
+        <!-- 提示框置頂 -->
+        <div id="message-box" class="hidden bg-white border-b-4 border-gray-800 p-1 sm:p-2 text-xs sm:text-sm md:text-base font-black flex items-center justify-center text-center text-gray-800 shadow-md h-8 sm:h-10 z-20 flex-none w-full">
+            出現了！請在右方列出圖形的面積算式！
+        </div>
+
+        <!-- STREAMING_CHUNK:Start screen... -->
+        <div id="start-screen" class="hidden p-4 sm:p-6 text-center bg-green-50 flex-1 flex flex-col justify-center items-center overflow-y-auto z-50 absolute inset-0">
+            <h2 class="text-3xl sm:text-4xl font-black text-gray-800 mb-4 sm:mb-6 drop-shadow-sm">寶可夢面積對戰！</h2>
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border-4 border-gray-300 max-w-lg mb-6 w-full">
+                <p class="text-base sm:text-lg text-gray-700 font-bold mb-2">遇到野生寶可夢了！</p>
+                <p class="text-sm sm:text-base text-gray-600 leading-relaxed text-left">
+                    ⚔️ 攻擊規則：<br>
+                    1. 觀察左方黑板上的圖形。<br>
+                    2. <b>列式正確</b>：發動一般攻擊！<br>
+                    3. <b>答案正確</b>：發動會心一擊收服對手！<br>
+                    <span class="text-red-500 font-bold mt-1 block">💡 提示：戰鬥中可以隨時點擊正下方的頭像圈圈切換寶可夢喔！全軍覆沒就會挑戰失敗。</span>
+                </p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="window.startGame()" class="btn-game bg-red-500 text-white font-black py-3 px-8 rounded-xl text-xl border-2 border-red-700 shadow-lg">開始冒險</button>
+                <button onclick="window.logout()" class="btn-game bg-gray-500 text-white font-black py-3 px-4 rounded-xl text-lg border-2 border-gray-700 shadow-lg">登出</button>
+            </div>
+        </div>
+
+        <!-- 3選1 起始夥伴畫面 -->
+        <div id="starter-screen" class="hidden p-4 sm:p-6 text-center bg-green-50 flex-1 flex flex-col justify-center items-center overflow-y-auto z-50 absolute inset-0">
+            <h2 class="text-2xl sm:text-3xl font-black text-gray-800 mb-2">大木博士：</h2>
+            <p class="text-base sm:text-lg text-gray-600 mb-8 font-bold">「請選擇一隻夥伴，陪你一起計算面積吧！」</p>
+            <div class="flex gap-4 sm:gap-8 flex-row w-full justify-center items-center">
+                <div onclick="window.selectStarter('奇異種子')" class="bg-white border-4 border-green-500 rounded-2xl p-2 sm:p-4 cursor-pointer hover:bg-green-100 active:scale-95 transition-all shadow-lg flex flex-col items-center">
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png" class="w-20 h-20 sm:w-28 sm:h-28 object-contain drop-shadow-md">
+                    <h3 class="font-black text-sm sm:text-lg text-green-700 mt-2">奇異種子</h3>
+                </div>
+                <div onclick="window.selectStarter('小火龍')" class="bg-white border-4 border-red-500 rounded-2xl p-2 sm:p-4 cursor-pointer hover:bg-red-100 active:scale-95 transition-all shadow-lg flex flex-col items-center">
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/4.png" class="w-20 h-20 sm:w-28 sm:h-28 object-contain drop-shadow-md">
+                    <h3 class="font-black text-sm sm:text-lg text-red-700 mt-2">小火龍</h3>
+                </div>
+                <div onclick="window.selectStarter('車厘龜')" class="bg-white border-4 border-blue-500 rounded-2xl p-2 sm:p-4 cursor-pointer hover:bg-blue-100 active:scale-95 transition-all shadow-lg flex flex-col items-center">
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/7.png" class="w-20 h-20 sm:w-28 sm:h-28 object-contain drop-shadow-md">
+                    <h3 class="font-black text-sm sm:text-lg text-blue-700 mt-2">車厘龜</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- STREAMING_CHUNK:Battle scene layout... -->
+        <!-- 遊戲對戰畫面 -->
+        <div id="battle-screen" class="hidden relative flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-900">
+            
+            <div class="flex-1 relative overflow-hidden flex flex-row bg-gradient-to-br from-blue-200 via-green-200 to-green-400 pt-2 sm:pt-4" id="battle-scene-bg">
+                
+                <!-- 四人模式專屬：神獸全寬長血條 (於神獸頭上顯示，與畫面同寬，名稱及HP數字顯示在條內) -->
+                <div id="multi-boss-hp-container" class="hidden absolute top-1 sm:top-2 left-0 w-full px-2 sm:px-4 z-30 pointer-events-none">
+                    <div class="w-full bg-gray-950/85 border-2 border-red-700 rounded-lg shadow-xl p-0.5 sm:p-1 relative overflow-hidden backdrop-blur-sm">
+                        <div class="w-full bg-gray-800 rounded h-6 sm:h-7 relative overflow-hidden flex items-center">
+                            <!-- 動態血量填充條 -->
+                            <div id="multi-boss-hp-bar" class="h-full bg-gradient-to-r from-red-600 via-yellow-500 to-green-500 rounded transition-all duration-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]" style="width: 100%;"></div>
+                            <!-- 血條內部文字：名稱與HP數值 -->
+                            <div class="absolute inset-0 flex justify-between items-center px-3 sm:px-4 text-white font-black text-xs sm:text-sm text-shadow select-none z-10">
+                                <span id="multi-boss-name" class="tracking-wider flex items-center gap-1.5 drop-shadow">
+                                    <span class="text-red-400 animate-pulse">👑</span>
+                                    <span id="multi-boss-name-text">無極汰那 (極巨化) Lv.50</span>
+                                </span>
+                                <span id="multi-boss-hp-num" class="tracking-widest font-mono text-yellow-200 drop-shadow">400 / 400</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 絕對定位：敵方資訊 -->
+                <div id="enemy-info-container" class="absolute top-2 right-2 sm:top-4 sm:right-4 z-30 flex flex-col items-end transition-all duration-300">
+                    <div id="enemy-box" class="bg-white/95 p-1.5 sm:p-2.5 rounded-lg shadow-md border-2 border-gray-400 min-w-[140px] sm:min-w-[180px]">
+                        <div class="flex justify-between font-black text-xs sm:text-sm mb-1 text-gray-800">
+                            <span id="enemy-name">野生寶可夢</span><span>Lv.<span id="enemy-level">50</span></span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2.5 sm:h-3 border-2 border-gray-800 relative">
+                            <div id="enemy-hp-bar" class="bg-green-500 h-full rounded-full transition-all duration-500" style="width: 100%"></div>
+                            <div id="multi-hp-text-overlay" class="hidden absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs font-black text-white text-shadow-sm">400/400</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 單人專屬：左下角資訊與正下方背影 -->
+                <div class="single-player-element absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-30 flex flex-col items-start gap-1">
+                    <div id="player-box" class="bg-white/95 p-1.5 sm:p-2.5 rounded-lg shadow-md border-2 border-gray-400 min-w-[140px] sm:min-w-[180px]">
+                        <div class="flex justify-between font-black text-xs sm:text-sm mb-1 text-blue-800">
+                            <span id="player-name">寶可夢</span><span>Lv.50</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2.5 sm:h-3 border-2 border-gray-800">
+                            <div id="player-hp-bar" class="bg-green-500 h-full rounded-full transition-all duration-500" style="width: 100%"></div>
+                        </div>
+                        <div class="text-right text-[10px] sm:text-xs font-black mt-0.5 text-gray-600">
+                            <span id="player-hp-text">100/100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="single-player-element absolute bottom-0 left-[15%] sm:left-[25%] z-20 flex flex-col items-center justify-end w-48 sm:w-72 h-64 pointer-events-none" id="player-sprite-container">
+                    <img id="player-sprite" src="" class="w-full h-full object-contain filter drop-shadow-2xl pixelated-sprite relative z-10 player-pokemon-float translate-y-[35%]">
+                    <div id="player-party" class="absolute bottom-2 sm:bottom-4 z-30 flex gap-2 sm:gap-4 justify-center w-full pointer-events-auto"></div>
+                </div>
+
+                <!-- 四人模式背影精靈與隊伍圈圈區 -->
+                <!-- 四人模式背影精靈與隊伍圈圈區 (緊貼下方黑色框) -->
+                <div id="multi-player-sprites-container" class="hidden absolute bottom-0 left-0 w-full z-20 flex flex-row items-end px-2 sm:px-4 md:px-6 gap-2.5 sm:gap-4 md:gap-5 lg:gap-6 pointer-events-none pb-0.5">
+                    <!-- 透過 JS 自動插入 4 個玩家的戰鬥塔 -->
+                </div>
+
+                <!-- 單人模式：左半部題目畫板區 -->
+                <div id="canvas-wrapper" class="w-1/2 h-full flex flex-col justify-start pt-4 sm:pt-6 items-start pl-2 sm:pl-6 relative z-10 transition-all duration-300">
+                    <div class="bg-[#2c3e50] border-4 border-[#1a252f] rounded-xl p-1.5 sm:p-3 shadow-xl flex flex-col items-center relative w-full max-w-[360px]">
+                        <div class="bg-[#ecf0f1] p-1 sm:p-2 rounded border-2 border-gray-400 w-full flex justify-center board-shadow">
+                            <canvas id="shape-canvas" width="360" height="280" class="w-full max-w-[200px] sm:max-w-[280px] md:max-w-[360px] h-auto object-contain"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右半部：野生寶可夢圖像區 -->
+                <div id="enemy-wrapper" class="w-1/2 h-full flex flex-col items-center justify-start pt-12 sm:pt-16 pr-2 sm:pr-8 relative z-10 transition-all duration-300">
+                    <div id="pokemon-container" class="pokemon-sprite flex flex-col items-center relative transition-all duration-300">
+                        <div id="gmax-cloud" class="hidden gmax-clouds"></div>
+                        <img id="pokemon-img" src="" alt="寶可夢" class="pokemon-float w-24 h-24 sm:w-36 sm:h-36 md:w-48 md:h-48 object-contain filter drop-shadow-2xl relative z-10">
+                        <div id="pokemon-shadow" class="w-16 sm:w-24 md:w-32 bg-black/20 h-2 sm:h-3 rounded-[50%] absolute -bottom-1 sm:-bottom-2 z-0"></div>
+                        
+                        <!-- 精靈球 -->
+                        <div id="pokeball-container" class="hidden absolute top-1/2 left-1/2 z-20">
+                            <svg width="48" height="48" viewBox="0 0 100 100" class="sm:w-16 sm:h-16">
+                                <circle cx="50" cy="50" r="45" fill="white" stroke="black" stroke-width="5"/>
+                                <path d="M 5 50 A 45 45 0 0 1 95 50 Z" fill="#FF0000" stroke="black" stroke-width="5"/>
+                                <line x1="5" y1="50" x2="95" y2="50" stroke="black" stroke-width="5"/>
+                                <circle cx="50" cy="50" r="15" fill="white" stroke="black" stroke-width="5"/>
+                                <circle cx="50" cy="50" r="8" fill="white" stroke="black" stroke-width="2"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- STREAMING_CHUNK:Control Panel (Keypad & Formula)... -->
+            <!-- 單人操作區 (下半部) -->
+            <div id="single-bottom-panel" class="bg-gray-300 p-1.5 sm:p-3 flex-none z-10 flex flex-row items-stretch gap-1.5 sm:gap-3 h-48 sm:h-56 border-t-4 border-gray-800">
+                <div class="w-1/2 flex flex-col bg-gray-800 p-1.5 sm:p-2 rounded-xl border-2 border-gray-900 shadow-inner">
+                    <div class="grid grid-cols-4 grid-rows-4 gap-1 sm:gap-1.5 flex-1 h-full w-full">
+                        <button onclick="window.numpadPress('1')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">1</button>
+                        <button onclick="window.numpadPress('2')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">2</button>
+                        <button onclick="window.numpadPress('3')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">3</button>
+                        <button onclick="window.numpadPress('+')" class="bg-blue-200 rounded text-sm sm:text-lg font-black text-blue-900 shadow-[0_3px_0_#93c5fd] active:translate-y-[3px] active:shadow-none transition-all select-none">+</button>
+                        <button onclick="window.numpadPress('4')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">4</button>
+                        <button onclick="window.numpadPress('5')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">5</button>
+                        <button onclick="window.numpadPress('6')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">6</button>
+                        <button onclick="window.numpadPress('-')" class="bg-blue-200 rounded text-sm sm:text-lg font-black text-blue-900 shadow-[0_3px_0_#93c5fd] active:translate-y-[3px] active:shadow-none transition-all select-none">-</button>
+                        <button onclick="window.numpadPress('7')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">7</button>
+                        <button onclick="window.numpadPress('8')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">8</button>
+                        <button onclick="window.numpadPress('9')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">9</button>
+                        <button onclick="window.numpadPress('×')" class="bg-blue-200 rounded text-sm sm:text-lg font-black text-blue-900 shadow-[0_3px_0_#93c5fd] active:translate-y-[3px] active:shadow-none transition-all select-none">×</button>
+                        <button onclick="window.numpadPress('(')" class="bg-blue-100 rounded text-sm sm:text-lg font-black text-blue-900 shadow-[0_3px_0_#93c5fd] active:translate-y-[3px] active:shadow-none transition-all select-none">(</button>
+                        <button onclick="window.numpadPress('0')" class="bg-white rounded text-sm sm:text-lg font-black text-gray-800 shadow-[0_3px_0_#d1d5db] active:translate-y-[3px] active:shadow-none transition-all select-none">0</button>
+                        <button onclick="window.numpadPress(')')" class="bg-blue-100 rounded text-sm sm:text-lg font-black text-blue-900 shadow-[0_3px_0_#93c5fd] active:translate-y-[3px] active:shadow-none transition-all select-none">)</button>
+                        <button onclick="window.numpadPress('÷')" class="bg-blue-200 rounded text-sm sm:text-lg font-black text-blue-900 shadow-[0_3px_0_#93c5fd] active:translate-y-[3px] active:shadow-none transition-all select-none">÷</button>
+                    </div>
+                    <div class="flex gap-1 sm:gap-1.5 mt-1 sm:mt-1.5 h-8 sm:h-10">
+                        <button onclick="window.numpadPress('DEL')" class="flex-1 bg-yellow-400 text-yellow-900 font-black rounded text-xs sm:text-sm shadow-[0_3px_0_#a16207] active:translate-y-[3px] active:shadow-none transition-all select-none">退格</button>
+                        <button onclick="currentPhase === 1 ? window.checkFormula() : window.checkAnswer()" class="flex-[2] bg-green-500 text-white font-black rounded text-sm sm:text-base shadow-[0_3px_0_#166534] active:translate-y-[3px] active:shadow-none transition-all select-none">確認</button>
+                    </div>
+                </div>
+
+                <div class="w-1/2 flex flex-col justify-center items-center p-1.5 sm:p-2 bg-white rounded-xl border-2 border-gray-400 shadow-sm relative">
+                    <div class="w-full flex-1 flex flex-col justify-center items-center px-1 gap-2 sm:gap-4">
+                        <div id="phase1-container" class="w-full flex flex-col items-center transition-all">
+                            <div id="formula-display" class="w-full h-[40px] sm:h-[50px] border-2 border-gray-400 bg-gray-50 rounded flex items-center justify-center px-2 text-base sm:text-xl font-black text-red-600 break-all shadow-inner tracking-wider select-none leading-none overflow-hidden"></div>
+                        </div>
+                        <div id="phase2-container" class="w-full flex flex-col items-center gap-1 sm:gap-1.5 pt-3 border-t-2 border-dashed border-gray-300 hidden animate-fade-in">
+                            <div class="flex items-center gap-1 sm:gap-2 w-full justify-center">
+                                <span class="font-black text-gray-700 text-sm sm:text-base whitespace-nowrap">面積 =</span>
+                                <div id="answer-display" class="w-20 sm:w-28 h-10 sm:h-12 border-2 border-red-500 bg-red-50 rounded flex items-center justify-center text-lg sm:text-2xl font-black text-red-600 shadow-inner select-none leading-none overflow-hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STREAMING_CHUNK:Multiplayer Panel... -->
+            <!-- 四人操作區 (下半部) -->
+            <!-- 四人操作區 (下半部) -->
+            <div id="multi-bottom-panel" class="hidden bg-gray-800 px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 flex-none z-10 flex flex-row items-stretch gap-2.5 sm:gap-4 md:gap-5 lg:gap-6 h-56 sm:h-64 w-full pt-6 sm:pt-8 border-t-4 border-gray-900">
+                <!-- 透過 JS 自動生成 4 個玩家區塊 -->
+            </div>
+        </div>
+
+        <!-- STREAMING_CHUNK:Evolution and End screens... -->
+        <div id="evolution-screen" class="hidden absolute inset-0 z-[60] bg-black flex flex-col items-center justify-center">
+            <h2 id="evo-message" class="text-xl sm:text-3xl font-black text-white mb-12 text-center animate-pulse px-4">什麼？樣子有點奇怪...</h2>
+            <div class="relative flex justify-center items-center h-48 w-48 sm:h-64 sm:w-64 mb-8">
+                <img id="evo-img" src="" class="w-40 h-40 sm:w-56 sm:h-56 object-contain relative z-10 transition-all">
+            </div>
+            <button id="evo-next-btn" class="hidden btn-game bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-8 rounded-xl text-lg sm:text-xl border-2 border-blue-800 z-20">繼續旅程</button>
+        </div>
+
+        <div id="end-screen" class="hidden p-4 sm:p-6 text-center bg-blue-50 flex-1 flex flex-col justify-center items-center overflow-y-auto z-50 absolute inset-0">
+            <h2 id="end-title" class="text-3xl sm:text-4xl font-black text-blue-800 mb-2 sm:mb-4 drop-shadow-sm">太棒了！</h2>
+            <div id="end-icon" class="text-6xl sm:text-7xl mb-4 drop-shadow-md">🏆</div>
+            <p id="end-subtitle" class="text-lg sm:text-2xl font-bold text-gray-700 mb-2">你總共答對了</p>
+            <p class="text-5xl sm:text-6xl font-black text-red-500 mb-8 drop-shadow"><span id="final-score">0</span> <span class="text-2xl sm:text-3xl text-gray-600">題</span></p>
+            <button onclick="window.selectMode('mode')" class="btn-game bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-8 rounded-xl text-xl sm:text-2xl border-4 border-blue-800 shadow-lg">回到首頁</button>
+        </div>
+
+        <div id="multi-end-screen" class="hidden p-4 sm:p-6 text-center bg-purple-50 flex-1 flex flex-col justify-center items-center overflow-y-auto z-50 absolute inset-0">
+            <h2 id="multi-end-title" class="text-3xl sm:text-5xl font-black text-purple-800 mb-2 drop-shadow-sm tracking-wider">極巨化神獸討伐成功！</h2>
+            <div id="multi-end-icon" class="text-6xl sm:text-7xl mb-2 drop-shadow-md player-pokemon-float">🏆</div>
+            <p id="multi-end-subtitle" class="text-xl sm:text-2xl font-bold text-gray-700 mb-2">全體玩家合力擊敗了強敵</p>
+            <p id="multi-winner-name" class="text-2xl sm:text-3xl font-black text-red-500 mb-4 drop-shadow"></p>
+            
+            <!-- 橫向棒形圖統計區塊 (4位玩家傷害排行榜) -->
+            <div id="multi-damage-chart-container" class="w-full max-w-lg bg-white rounded-2xl p-4 sm:p-5 shadow-xl border-4 border-purple-200 mb-6 flex flex-col gap-3">
+                <!-- 橫向棒形圖由 JS 自動動態渲染 -->
+            </div>
+            <button onclick="window.selectMode('mode')" class="btn-game bg-purple-600 hover:bg-purple-500 text-white font-black py-3 px-10 rounded-xl text-xl sm:text-2xl border-4 border-purple-800 shadow-lg">回到首頁</button>
+        </div>
+    </div>
+
+    <script>
+        /* STREAMING_CHUNK:Initializing state and variables... */
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyeyJBY7QLcF_qZMpvh3JQrgXn03xxPeJ054ImJob2pjmhXkvsxjEwVEKkkrHWoaT8_ng/exec";
+        
+        const classOptionsHtml = `
+            <option value="5A">5A</option>
+            <option value="5B">5B</option>
+            <option value="5C">5C</option>
+            <option value="5D">5D</option>
+            <option value="測試">測試</option>
+        `;
+        let numOptionsHtml = '';
+        for(let i=1; i<=40; i++) {
+            numOptionsHtml += `<option value="${i}號">${i}號</option>`;
+        }
+
+        let gameMode = 'single'; 
+        let currentStudentId = null;
+        let currentPassword = null;
+        let score = 0; 
+        
+        let gameStats = { parallelogram: { total: 0, correct: 0 }, triangle: { total: 0, correct: 0 }, trapezoid: { total: 0, correct: 0 } };
+        let enemyMaxHp = 100; let enemyHp = 100;
+        let playerMaxHp = 100; let playerHp = 100;
+        let activePlayerIndex = 0; 
+        let playerParty = [];
+        let newlyCaughtPokemon = null; 
+        let evolutionQueue = []; 
+        let playerFormulaStr = "";
+        let playerAnswerStr = "";
+
+        let multiPlayers = [];
+
+        let currentQuestion = {}; 
+        let currentPokemon = null; 
+        let currentPhase = 1; 
+
+        const screens = {
+            mode: document.getElementById('mode-screen'),
+            login: document.getElementById('login-screen'),
+            start: document.getElementById('start-screen'), starter: document.getElementById('starter-screen'),
+            battle: document.getElementById('battle-screen'), evolution: document.getElementById('evolution-screen'),
+            end: document.getElementById('end-screen'), multiEnd: document.getElementById('multi-end-screen')
+        };
+        const elements = {
+            overlay: document.getElementById('encounter-overlay'), playerName: document.getElementById('player-name'),
+            enemyBox: document.getElementById('enemy-box'), playerBox: document.getElementById('player-box'),
+            playerParty: document.getElementById('player-party'), replaceModal: document.getElementById('replace-modal'),
+            partyReplaceList: document.getElementById('party-replace-list'), newPokemonName: document.getElementById('new-pokemon-name'),
+            newPokemonImg: document.getElementById('new-pokemon-img'), score: document.getElementById('score-display'),
+            enemyName: document.getElementById('enemy-name'), enemyLevel: document.getElementById('enemy-level'),
+            enemyHpBar: document.getElementById('enemy-hp-bar'), playerHpBar: document.getElementById('player-hp-bar'), 
+            playerHpText: document.getElementById('player-hp-text'), battleScene: document.getElementById('battle-scene-bg'), 
+            messageBox: document.getElementById('message-box'), 
+            gameHeader: document.getElementById('game-header'), headerStudentId: document.getElementById('header-student-id'),
+            headerTitleText: document.getElementById('header-title-text'), headerTrainerInfo: document.getElementById('header-trainer-info'), headerScoreInfo: document.getElementById('header-score-info'),
+            headerHomeBtn: document.getElementById('header-home-btn'),
+
+            singleBottomPanel: document.getElementById('single-bottom-panel'), multiBottomPanel: document.getElementById('multi-bottom-panel'),
+            phase1: document.getElementById('phase1-container'), phase2: document.getElementById('phase2-container'),
+            formulaDisplay: document.getElementById('formula-display'), answerDisplay: document.getElementById('answer-display'),
+
+            canvas: document.getElementById('shape-canvas'),
+            canvasWrapper: document.getElementById('canvas-wrapper'), enemyWrapper: document.getElementById('enemy-wrapper'),
+            pokemonSprite: document.getElementById('pokemon-container'), pokemonImg: document.getElementById('pokemon-img'),
+            pokemonShadow: document.getElementById('pokemon-shadow'), pokeball: document.getElementById('pokeball-container'), 
+            finalScore: document.getElementById('final-score'), endTitle: document.getElementById('end-title'), 
+            endIcon: document.getElementById('end-icon'), endSubtitle: document.getElementById('end-subtitle'),
+            playerSpriteContainer: document.getElementById('player-sprite-container'), playerSprite: document.getElementById('player-sprite'),
+            enemyInfoContainer: document.getElementById('enemy-info-container'),
+            multiBossHpContainer: document.getElementById('multi-boss-hp-container'),
+            multiBossHpBar: document.getElementById('multi-boss-hp-bar'),
+            multiBossHpNum: document.getElementById('multi-boss-hp-num'),
+            multiBossNameText: document.getElementById('multi-boss-name-text'),
+            gmaxCloud: document.getElementById('gmax-cloud'), multiHpText: document.getElementById('multi-hp-text-overlay')
+        };
+
+        const pokemonData = {
+            starters: [
+                { name: "奇異種子", nextEvolution: "妙蛙草", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png", stats: { hp: 105, attack: 49, defense: 49, spatk: 65, spdef: 65 } },
+                { name: "小火龍", nextEvolution: "火恐龍", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/4.png", stats: { hp: 99, attack: 52, defense: 43, spatk: 60, spdef: 50 } },
+                { name: "車厘龜", nextEvolution: "卡咪龜", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/7.png", stats: { hp: 104, attack: 48, defense: 65, spatk: 50, spdef: 64 } }
+            ],
+            stage3_form1: [
+                { name: "波波", nextEvolution: "比比鳥", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/16.png", stats: { hp: 100, attack: 45, defense: 40, spatk: 35, spdef: 35 } },
+                { name: "腕力", nextEvolution: "豪力", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/66.png", stats: { hp: 130, attack: 80, defense: 50, spatk: 35, spdef: 35 } },
+                { name: "鬼斯", nextEvolution: "鬼斯通", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/92.png", stats: { hp: 90, attack: 35, defense: 30, spatk: 100, spdef: 35 } }
+            ],
+            stage2_form1: [
+                { name: "喵喵怪", nextEvolution: "貓老大", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/52.png", stats: { hp: 100, attack: 45, defense: 35, spatk: 40, spdef: 40 } },
+                { name: "傻鴨", nextEvolution: "哥達鴨", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/54.png", stats: { hp: 110, attack: 52, defense: 48, spatk: 65, spdef: 50 } },
+                { name: "伊布", nextEvolution: "水伊布", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png", stats: { hp: 115, attack: 55, defense: 50, spatk: 45, spdef: 65 } },
+                { name: "皮卡丘", nextEvolution: "雷丘", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png", stats: { hp: 100, attack: 55, defense: 40, spatk: 50, spdef: 50 } }
+            ],
+            legendary: [
+                { name: "超夢", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/150.png", stats: { hp: 186, attack: 110, defense: 90, spatk: 154, spdef: 90 } },
+                { name: "夢幻", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/151.png", stats: { hp: 180, attack: 100, defense: 100, spatk: 100, spdef: 100 } }
+            ],
+            gigantamax_legendaries: [
+                { name: "無極汰那 (極巨大化)", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/890.png", stats: { hp: 400, attack: 115, defense: 250, spatk: 125, spdef: 250 } },
+                { name: "超夢 (極巨大化)", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/150.png", stats: { hp: 400, attack: 150, defense: 120, spatk: 180, spdef: 120 } }
+            ],
+            evolutions: {
+                "妙蛙草": { name: "妙蛙草", nextEvolution: "妙蛙花", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/2.png", stats: { hp: 120, attack: 62, defense: 63, spatk: 80, spdef: 80 } },
+                "妙蛙花": { name: "妙蛙花", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/3.png", stats: { hp: 140, attack: 82, defense: 83, spatk: 100, spdef: 100 } },
+                "火恐龍": { name: "火恐龍", nextEvolution: "噴火龍", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/5.png", stats: { hp: 118, attack: 64, defense: 58, spatk: 80, spdef: 65 } },
+                "噴火龍": { name: "噴火龍", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png", stats: { hp: 138, attack: 84, defense: 78, spatk: 109, spdef: 85 } },
+                "卡咪龜": { name: "卡咪龜", nextEvolution: "水箭龜", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/8.png", stats: { hp: 119, attack: 63, defense: 80, spatk: 65, spdef: 80 } },
+                "水箭龜": { name: "水箭龜", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/9.png", stats: { hp: 139, attack: 83, defense: 100, spatk: 85, spdef: 105 } },
+                "比比鳥": { name: "比比鳥", nextEvolution: "大比鳥", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/17.png", stats: { hp: 123, attack: 60, defense: 55, spatk: 50, spdef: 50 } },
+                "大比鳥": { name: "大比鳥", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/18.png", stats: { hp: 143, attack: 80, defense: 75, spatk: 70, spdef: 70 } },
+                "豪力": { name: "豪力", nextEvolution: "怪力", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/67.png", stats: { hp: 140, attack: 100, defense: 70, spatk: 50, spdef: 60 } },
+                "怪力": { name: "怪力", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/68.png", stats: { hp: 150, attack: 130, defense: 80, spatk: 65, spdef: 85 } },
+                "鬼斯通": { name: "鬼斯通", nextEvolution: "耿鬼", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/93.png", stats: { hp: 105, attack: 50, defense: 45, spatk: 115, spdef: 55 } },
+                "耿鬼": { name: "耿鬼", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/94.png", stats: { hp: 120, attack: 65, defense: 60, spatk: 130, spdef: 75 } },
+                "貓老大": { name: "貓老大", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/53.png", stats: { hp: 125, attack: 70, defense: 60, spatk: 65, spdef: 65 } },
+                "哥達鴨": { name: "哥達鴨", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/55.png", stats: { hp: 140, attack: 82, defense: 78, spatk: 95, spdef: 80 } },
+                "水伊布": { name: "水伊布", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/134.png", stats: { hp: 190, attack: 65, defense: 60, spatk: 110, spdef: 95 } },
+                "雷丘": { name: "雷丘", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/26.png", stats: { hp: 130, attack: 90, defense: 55, spatk: 90, spdef: 80 } }
+            }
+        };
+        pokemonData.starter = pokemonData.starters;
+
+        // 全域圖片防破圖與 CDN 自動備援機制
+        window.handleImageError = function(img) {
+            if (!img || img.dataset.imgFailed === 'true') return;
+            let step = parseInt(img.dataset.errStep || '0');
+            img.dataset.errStep = step + 1;
+            let src = img.src || '';
+
+            // 1. 若有無極汰那錯誤的 890-eternamax 檔名，修正為 890.png
+            if (src.includes('890-eternamax.png')) {
+                img.src = src.replace('890-eternamax.png', '890.png');
+                return;
+            }
+
+            // 2. 若背影圖 (/back/) 載入失敗 (404 或無圖)，自動切換至正面官方繪圖
+            if (src.includes('/sprites/pokemon/back/')) {
+                let match = src.match(/\/back\/(\d+)\.png/);
+                let id = match ? match[1] : '1';
+                img.src = `https://fastly.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
+                return;
+            }
+
+            // 3. 若 raw.githubusercontent.com 失敗，切換至高速 jsDelivr CDN
+            if (src.includes('raw.githubusercontent.com/PokeAPI/sprites/master')) {
+                img.src = src.replace('raw.githubusercontent.com/PokeAPI/sprites/master', 'fastly.jsdelivr.net/gh/PokeAPI/sprites@master');
+                return;
+            }
+
+            // 4. 若 official-artwork 依然載入失敗，退回標準正面小圖
+            if (src.includes('/other/official-artwork/')) {
+                let match = src.match(/\/official-artwork\/(\d+)\.png/);
+                let id = match ? match[1] : '1';
+                img.src = `https://fastly.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`;
+                return;
+            }
+
+            // 5. 終極保底：標記防止無限遞迴
+            img.dataset.imgFailed = 'true';
+            img.src = "https://fastly.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/1.png";
+        };
+
+        window.addEventListener('error', function(e) {
+            if (e.target && e.target.tagName === 'IMG') {
+                window.handleImageError(e.target);
+            }
+        }, true);
+
+
+        window.getBackSpriteUrl = function(frontUrl) {
+            if(!frontUrl) return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png";
+            let match = frontUrl.match(/\/(\d+)\.png/);
+            if(match && match[1]) {
+                let id = parseInt(match[1]);
+                if (id >= 1 && id <= 649) {
+                    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`;
+                }
+            }
+            return frontUrl;
+        };
+
+
+        window.getPokemonByName = function(name) {
+            if (!name) name = "";
+            name = name.trim();
+            const nameAliases = {
+                "妙蛙種子": "奇異種子",
+                "奇異草": "妙蛙草",
+                "奇異花": "妙蛙花",
+                "傑尼龜": "車厘龜",
+                "卡密龜": "卡咪龜",
+                "喵喵": "喵喵怪",
+                "可達鴨": "傻鴨",
+                "水精靈": "水伊布",
+                "比卡超": "皮卡丘",
+                "雷超": "雷丘",
+                "比雕": "大比鳥",
+                "無極汰那": "無極汰那 (極巨大化)",
+                "超夢夢": "超夢"
+            };
+            if (nameAliases[name]) name = nameAliases[name];
+
+            for (let category in pokemonData) {
+                if (Array.isArray(pokemonData[category])) {
+                    let found = pokemonData[category].find(p => p.name === name);
+                    if (found) return JSON.parse(JSON.stringify(found));
+                } else if (pokemonData[category] && pokemonData[category][name]) {
+                    return JSON.parse(JSON.stringify(pokemonData[category][name]));
+                }
+            }
+            let pool = pokemonData.starters || pokemonData.starter || [];
+            return JSON.parse(JSON.stringify(pool[0]));
+        };
+        window.resizeGame = function() {
+            const container = document.getElementById('game-container') || document.getElementById('game-app');
+            if (!container) return;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const targetRatio = 4 / 3;
+            
+            let newW, newH;
+            if (w / h > targetRatio) {
+                newH = h;
+                newW = h * targetRatio;
+            } else {
+                newW = w;
+                newH = w / targetRatio;
+            }
+            
+            container.style.width = `${newW}px`;
+            container.style.height = `${newH}px`;
+        };
+        window.addEventListener('resize', window.resizeGame);
+
+        window.toggleFullscreen = function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`全螢幕請求失敗: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        };
+
+        window.showScreen = function(screenName) {
+            Object.values(screens).forEach(s => { if(s) s.classList.add('hidden'); });
+            if(screens[screenName]) screens[screenName].classList.remove('hidden');
+            window.resizeGame();
+        };
+
+        window.selectMode = function(mode) {
+            try {
+                gameMode = mode;
+                if (mode === 'single') {
+                    window.showScreen('login');
+                } else if (mode === 'multi') {
+                    window.initMultiplayerGame();
+                } else if (mode === 'mode') {
+                    window.showScreen('mode');
+                }
+            } catch(e) {
+                console.error("選單切換錯誤:", e);
+            }
+        };
+
+        window.getCombinedId = function(classVal, numVal) {
+            let n = parseInt(numVal);
+            if (classVal === '測試') return 'student' + n; 
+            let paddedNum = n < 10 ? '0' + n : '' + n;
+            return classVal + paddedNum;
+        };
+
+        window.addEventListener('orientationchange', window.resizeGame);
+        window.initMultiplayerGame = function() {
+            multiPlayers = [0, 1, 2, 3].map(i => ({
+                name: '', id: '', score: 0, totalDamage: 0, isDefeated: false, formula: '', answer: '', isLoggedIn: false, party: [], activePokeIndex: 0, phase: 1, question: null,
+                colorClass: ['blue', 'red', 'green', 'yellow'][i]
+            }));
+            
+            document.querySelectorAll('.single-player-element').forEach(el => el.classList.add('hidden'));
+            elements.singleBottomPanel.classList.add('hidden');
+            elements.canvasWrapper.classList.add('hidden'); 
+            
+            elements.multiBottomPanel.classList.remove('hidden');
+            elements.messageBox.classList.remove('hidden');
+            
+            elements.headerTitleText.innerText = "四人極巨化討伐戰 - 合力擊敗神獸！";
+            elements.headerTrainerInfo.classList.add('hidden');
+            elements.headerScoreInfo.classList.add('hidden');
+            elements.headerHomeBtn.classList.remove('hidden');
+            elements.enemyInfoContainer.classList.add('left-1/2', 'transform', '-translate-x-1/2'); 
+            
+            // 四人模式顯示神獸全寬頭頂血條，隱藏原本角落單人血條盒
+            if (elements.multiBossHpContainer) elements.multiBossHpContainer.classList.remove('hidden');
+            if (elements.enemyInfoContainer) elements.enemyInfoContainer.classList.add('hidden');
+            elements.enemyWrapper.className = "w-full flex flex-col items-center justify-start pt-8 sm:pt-10 relative z-10 transition-all duration-300";
+            elements.gameHeader.classList.remove('hidden');
+            
+            window.buildMultiplayerPanels();
+            window.showScreen('battle');
+            window.spawnPokemon(); 
+        };
+
+        window.buildMultiplayerPanels = function() {
+            const spritesContainer = document.getElementById('multi-player-sprites-container');
+            spritesContainer.classList.remove('hidden'); 
+            
+            const colorMap = {
+                'blue': { border: 'border-blue-500', text: 'text-blue-800', bg: 'bg-blue-500', btn: 'bg-blue-500 hover:bg-blue-400', ring: 'ring-blue-400' },
+                'red': { border: 'border-red-500', text: 'text-red-800', bg: 'bg-red-500', btn: 'bg-red-500 hover:bg-red-400', ring: 'ring-red-400' },
+                'green': { border: 'border-green-500', text: 'text-green-800', bg: 'bg-green-500', btn: 'bg-green-500 hover:bg-green-400', ring: 'ring-green-400' },
+                'yellow': { border: 'border-yellow-400', text: 'text-yellow-800', bg: 'bg-yellow-500', btn: 'bg-yellow-500 hover:bg-yellow-400', ring: 'ring-yellow-400' }
+            };
+
+            let totalBottomHtml = '';
+            let totalSpritesHtml = '';
+
+            multiPlayers.forEach((p, i) => {
+                const c = colorMap[p.colorClass];
+                let html = '';
+                
+                if (p.isLoggedIn && p.party && p.party.length > 0) {
+                    let activePoke = p.party[p.activePokeIndex] || p.party[0]; 
+                    let pokeImageBack = window.getBackSpriteUrl(activePoke ? activePoke.image : '');
+                    
+                    let partyHtml = '';
+                    for (let j = 0; j < 3; j++) {
+                        let innerHtml = '';
+                        let isDead = p.party[j] && p.party[j].currentHp !== undefined && p.party[j].currentHp <= 0;
+                        let ringClass = j === p.activePokeIndex ? `ring-[3px] sm:ring-[4px] ${c.ring} border-white` : 'border-gray-400 opacity-80';
+                        let cursorClass = (p.party[j] && !isDead && !p.isDefeated) ? 'cursor-pointer hover:bg-gray-100 hover:scale-110 transition-all' : '';
+                        
+                        if (p.party[j]) {
+                            let deadOverlay = isDead ? '<div class="absolute inset-0 bg-red-600/60 flex items-center justify-center text-white text-[10px] font-black">✕</div>' : '';
+                            innerHtml = `<img src="${p.party[j].image}" class="w-[120%] h-[120%] object-contain drop-shadow transition-all ${isDead ? 'grayscale opacity-40' : ''}">${deadOverlay}`;
+                        } else {
+                            ringClass = 'bg-gray-200 border-gray-400 opacity-50';
+                        }
+                        partyHtml += `<div id="multi-party-slot-${i}-${j}" onclick="window.multiSwitchPokemon(${i}, ${j})" class="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-white/90 border-2 rounded-full flex items-center justify-center overflow-hidden shadow z-30 relative ${ringClass} ${cursorClass}">${innerHtml}</div>`;
+                    }
+
+                    let defeatedSpriteClass = p.isDefeated ? 'grayscale opacity-40' : 'multi-player-float';
+                    let defeatedCanvasClass = p.isDefeated ? 'opacity-40 grayscale' : '';
+
+                    totalSpritesHtml += `
+                    <div class="flex-1 flex flex-col items-center justify-end relative pb-0" id="multi-sprite-wrapper-${i}">
+                        <!-- 面積題目黑板與寶可夢 -->
+                        <div class="relative w-full max-w-[130px] sm:max-w-[145px] md:max-w-[165px] flex flex-col items-center ${defeatedCanvasClass}"> 
+                            <!-- Pokemon Sprite Overlay -->
+                            <div id="multi-sprite-anim-wrapper-${i}" class="absolute bottom-full left-1/2 transform -translate-x-1/2 translate-y-[35%] w-[4rem] sm:w-[5rem] md:w-[5.5rem] z-0 transition-all duration-300 pointer-events-none -mb-2 sm:-mb-3">
+                                <img id="multi-sprite-img-${i}" src="${pokeImageBack}" class="w-full h-full object-contain filter drop-shadow-lg pixelated-sprite ${defeatedSpriteClass}">
+                            </div>
+                            
+                            <!-- Mini Canvas (白底小黑板) -->
+                            <div class="bg-white border-[3px] border-gray-400 rounded-lg p-1 shadow-lg relative z-10 w-full">
+                                <div class="bg-[#f8fafc] rounded-md w-full flex justify-center overflow-hidden border border-gray-200">
+                                    <canvas id="multi-canvas-${i}" width="150" height="105" class="w-full h-auto object-contain"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3 Team Circles (緊貼下方黑框上方) -->
+                        <div class="flex gap-1 justify-center w-full z-20 pointer-events-auto mt-1 mb-0.5">${partyHtml}</div>
+                    </div>`;
+                } else {
+                    totalSpritesHtml += `<div class="flex-1"></div>`; 
+                }
+
+                if (!p.isLoggedIn) {
+                    html = `
+                    <div id="multi-panel-${i}" class="flex-1 flex flex-col bg-white rounded-lg p-1.5 sm:p-2 border-4 ${c.border} shadow-sm justify-center items-center gap-1.5 sm:gap-2 relative">
+                        <div class="font-black ${c.text} text-[14px] mb-1">玩家 ${i+1} 登入</div>
+                        <div class="w-full flex gap-1">
+                            <select id="multi-login-class-${i}" class="w-1/2 border-2 ${c.border} rounded p-1 text-center font-bold text-gray-800 text-[14px] focus:outline-none bg-white">
+                                ${classOptionsHtml}
+                            </select>
+                            <select id="multi-login-num-${i}" class="w-1/2 border-2 ${c.border} rounded p-1 text-center font-bold text-gray-800 text-[14px] focus:outline-none bg-white">
+                                ${numOptionsHtml}
+                            </select>
+                        </div>
+                        <button onclick="window.multiPlayerLogin(${i})" class="w-full ${c.btn} text-white font-black rounded p-1.5 sm:p-2 shadow text-[14px] mt-1">連線讀取</button>
+                        <div id="multi-login-err-${i}" class="text-red-500 text-[14px] font-bold mt-0.5 text-center h-5 w-full truncate"></div>
+                    </div>`;
+                } else if (p.isDefeated) {
+                    // 當玩家3隻POKEMON都死亡後則於玩家的計算板面顯示 "已沒有可戰鬥的POKEMON"
+                    html = `
+                    <div id="multi-panel-${i}" class="flex-1 flex flex-col bg-gray-100 rounded-lg p-1.5 sm:p-2 border-4 border-gray-500 shadow-sm relative justify-between select-none">
+                        <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white text-[14px] font-black px-2 py-0.5 rounded-full z-30 shadow whitespace-nowrap">
+                            ${p.name}
+                        </div>
+                        <div class="flex-1 flex flex-col items-center justify-center text-center p-2 mt-2">
+                            <div class="text-3xl sm:text-4xl mb-2 animate-pulse">💀</div>
+                            <div class="text-red-600 font-black text-[14px] sm:text-[15px] leading-tight mb-1">
+                                已沒有可戰鬥的POKEMON
+                            </div>
+                            <div class="text-gray-500 font-bold text-xs">
+                                等待其他玩家討伐...
+                            </div>
+                        </div>
+                        <div class="bg-gray-200 border border-gray-300 rounded p-1 text-center text-xs text-gray-600 font-black">
+                            累計輸出：${p.totalDamage || 0} 傷害
+                        </div>
+                    </div>`;
+                } else {
+                    let activePoke = (p.party && p.party.length > 0) ? (p.party[p.activePokeIndex] || p.party[0]) : null;
+                    if (activePoke && activePoke.currentHp === undefined) activePoke.currentHp = 100;
+                    if (activePoke && !activePoke.maxHp) activePoke.maxHp = 100;
+                    let curHp = activePoke ? activePoke.currentHp : 100;
+                    let maxHp = activePoke ? activePoke.maxHp : 100;
+                    let hpPerc = Math.max(0, Math.min(100, Math.round((curHp / maxHp) * 100)));
+                    let hpColorClass = hpPerc > 50 
+                        ? 'bg-green-200/70 border-r-2 border-green-400' 
+                        : (hpPerc > 25 ? 'bg-yellow-200/70 border-r-2 border-yellow-400' : 'bg-red-200/70 border-r-2 border-red-400');
+                    let hpTextColor = hpPerc > 50 ? 'text-green-700' : (hpPerc > 25 ? 'text-yellow-700' : 'text-red-700');
+
+                    html = `
+                    <div id="multi-panel-${i}" class="flex-1 flex flex-col bg-white rounded-lg p-1 sm:p-1.5 border-4 ${c.border} shadow-sm transition-colors relative justify-between">
+                        <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 ${c.bg} text-white text-[14px] font-black px-2 py-0.5 rounded-full z-30 shadow whitespace-nowrap">
+                            ${p.name}
+                        </div>
+                        <!-- 面積算式與答案顯示區 (底色為玩家寶可夢淺色血條，保持 14px 字體) -->
+                        <div class="relative bg-gray-50 border-2 border-gray-300 rounded p-1 sm:p-1.5 mt-1.5 mb-1 flex-none flex flex-col justify-center min-h-[44px] overflow-hidden shadow-inner">
+                            <!-- 淺色血條背景 (以淺色於答題位置底色顯示) -->
+                            <div id="multi-player-hp-bar-${i}" class="absolute inset-y-0 left-0 ${hpColorClass} transition-all duration-500 z-0 pointer-events-none" style="width: ${hpPerc}%;"></div>
+                            
+                            <!-- 答題文字內容 (z-10 確保清晰浮於淺色血條上方) -->
+                            <div class="relative z-10 flex flex-col justify-center w-full">
+                                <div class="flex items-center justify-between text-[14px] font-black text-gray-800 leading-tight">
+                                    <div class="flex items-center min-w-0">
+                                        <span class="text-gray-600 mr-1 flex-none text-[14px]">面積 =</span>
+                                        <span id="multi-formula-${i}" class="text-blue-700 tracking-wide font-black truncate text-[14px]">${p.formula || '<span class="text-gray-400 font-normal text-[14px]">列式...</span>'}</span>
+                                    </div>
+                                    <span id="multi-player-hp-text-${i}" class="text-[11px] font-bold ${hpTextColor} flex-none ml-1">${curHp}/${maxHp}</span>
+                                </div>
+                                <div id="multi-ans-row-${i}" class="flex items-center text-[14px] font-black text-gray-800 leading-tight mt-0.5 ${p.phase === 1 ? 'opacity-40' : ''}">
+                                    <span class="text-gray-600 mr-1 flex-none text-[14px]">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=</span>
+                                    <span id="multi-answer-${i}" class="text-green-700 tracking-wide font-black truncate text-[14px]">${p.answer || (p.phase === 2 ? '<span class="text-gray-400 font-normal text-[14px]">計算...</span>' : '')}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 4欄5列按鍵 (全部保持 14px 字體) -->
+                        <div class="grid grid-cols-4 grid-rows-5 gap-0.5 sm:gap-1 flex-1 w-full h-full pb-0.5">
+                            <button onclick="window.multiNumpadPress(${i}, '1')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">1</button>
+                            <button onclick="window.multiNumpadPress(${i}, '2')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">2</button>
+                            <button onclick="window.multiNumpadPress(${i}, '3')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">3</button>
+                            <button onclick="window.multiNumpadPress(${i}, '+')" class="bg-blue-100 text-blue-900 rounded text-[14px] font-black shadow-[0_2px_0_#93c5fd] active:translate-y-[2px] active:shadow-none select-none">+</button>
+
+                            <button onclick="window.multiNumpadPress(${i}, '4')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">4</button>
+                            <button onclick="window.multiNumpadPress(${i}, '5')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">5</button>
+                            <button onclick="window.multiNumpadPress(${i}, '6')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">6</button>
+                            <button onclick="window.multiNumpadPress(${i}, '-')" class="bg-blue-100 text-blue-900 rounded text-[14px] font-black shadow-[0_2px_0_#93c5fd] active:translate-y-[2px] active:shadow-none select-none">-</button>
+
+                            <button onclick="window.multiNumpadPress(${i}, '7')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">7</button>
+                            <button onclick="window.multiNumpadPress(${i}, '8')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">8</button>
+                            <button onclick="window.multiNumpadPress(${i}, '9')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">9</button>
+                            <button onclick="window.multiNumpadPress(${i}, '×')" class="bg-blue-100 text-blue-900 rounded text-[14px] font-black shadow-[0_2px_0_#93c5fd] active:translate-y-[2px] active:shadow-none select-none">×</button>
+
+                            <button onclick="window.multiNumpadPress(${i}, '(')" class="bg-blue-50 text-blue-900 rounded text-[14px] font-black shadow-[0_2px_0_#93c5fd] active:translate-y-[2px] active:shadow-none select-none">(</button>
+                            <button onclick="window.multiNumpadPress(${i}, '0')" class="bg-white rounded text-[14px] font-black text-gray-800 shadow-[0_2px_0_#d1d5db] active:translate-y-[2px] active:shadow-none select-none">0</button>
+                            <button onclick="window.multiNumpadPress(${i}, ')')" class="bg-blue-50 text-blue-900 rounded text-[14px] font-black shadow-[0_2px_0_#93c5fd] active:translate-y-[2px] active:shadow-none select-none">)</button>
+                            <button onclick="window.multiNumpadPress(${i}, '÷')" class="bg-blue-100 text-blue-900 rounded text-[14px] font-black shadow-[0_2px_0_#93c5fd] active:translate-y-[2px] active:shadow-none select-none">÷</button>
+
+                            <button onclick="window.multiNumpadPress(${i}, 'DEL')" class="col-span-2 bg-yellow-400 text-yellow-900 rounded text-[14px] font-black shadow-[0_2px_0_#a16207] active:translate-y-[2px] active:shadow-none select-none">退格</button>
+                            <button onclick="window.multiSubmit(${i})" class="col-span-2 bg-green-500 text-white rounded text-[14px] font-black shadow-[0_2px_0_#166534] active:translate-y-[2px] active:shadow-none select-none">OK</button>
+                        </div>
+                    </div>`;
+                }
+                totalBottomHtml += html;
+            });
+
+            spritesContainer.innerHTML = totalSpritesHtml;
+            elements.multiBottomPanel.innerHTML = totalBottomHtml;
+
+            setTimeout(() => {
+                multiPlayers.forEach((p, i) => {
+                    if (p.isLoggedIn && !p.isDefeated && p.question) {
+                        window.drawShapeToCanvas(`multi-canvas-${i}`, p.question, true);
+                    }
+                });
+            }, 50);
+        };
+
+
+        window.multiPlayerLogin = async function(index) {
+            let classVal = document.getElementById(`multi-login-class-${index}`).value;
+            let numVal = document.getElementById(`multi-login-num-${index}`).value;
+            let idVal = window.getCombinedId(classVal, numVal);
+            
+            let errEl = document.getElementById(`multi-login-err-${index}`);
+
+            if (GAS_URL.includes("請將您的") || idVal.startsWith("student")) {
+                let starters = ["奇異種子", "小火龍", "車厘龜", "喵喵怪", "傻鴨", "鬼斯"];
+                multiPlayers[index].id = idVal;
+                multiPlayers[index].name = idVal;
+                multiPlayers[index].activePokeIndex = 0;
+                multiPlayers[index].question = window.generateAreaQuestion(); 
+                multiPlayers[index].phase = 1;
+                multiPlayers[index].formula = '';
+                multiPlayers[index].answer = '';
+                multiPlayers[index].isLoggedIn = true;
+                multiPlayers[index].isDefeated = false;
+                multiPlayers[index].totalDamage = 0;
+                multiPlayers[index].party = [
+                    window.getPokemonByName(starters[Math.floor(Math.random() * starters.length)]),
+                    window.getPokemonByName(starters[Math.floor(Math.random() * starters.length)]),
+                    window.getPokemonByName(starters[Math.floor(Math.random() * starters.length)])
+                ];
+                multiPlayers[index].party.forEach(pk => { if (pk) { pk.maxHp = 100; pk.currentHp = 100; } });
+                window.buildMultiplayerPanels();
+                return;
+            }
+
+            errEl.innerText = "連線中..."; 
+            errEl.classList.remove('hidden', 'text-red-500');
+            errEl.classList.add('text-blue-500');
+            
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: 'single_id_login', id: idVal })
+                });
+                const data = await res.json();
+                
+                if (data.success && data.poke1) {
+                    multiPlayers[index].id = idVal;
+                    multiPlayers[index].name = idVal;
+                    multiPlayers[index].activePokeIndex = 0;
+                    
+                    let party = [];
+                    if(data.poke1) party.push(window.getPokemonByName(data.poke1));
+                    if(data.poke2) party.push(window.getPokemonByName(data.poke2));
+                    if(data.poke3) party.push(window.getPokemonByName(data.poke3));
+                    while(party.length < 3) {
+                        let starters = ["奇異種子", "小火龍", "車厘龜", "喵喵怪", "傻鴨", "鬼斯"];
+                        party.push(window.getPokemonByName(starters[party.length]));
+                    }
+                    party.forEach(pk => { if(pk) { pk.maxHp = 100; pk.currentHp = 100; } });
+                    
+                    multiPlayers[index].party = party;
+                    multiPlayers[index].question = window.generateAreaQuestion(); 
+                    multiPlayers[index].phase = 1;
+                    multiPlayers[index].formula = '';
+                    multiPlayers[index].answer = '';
+                    multiPlayers[index].isLoggedIn = true;
+                    multiPlayers[index].isDefeated = false;
+                    multiPlayers[index].totalDamage = 0;
+                    window.buildMultiplayerPanels(); 
+                } else {
+                    errEl.classList.remove('text-blue-500'); errEl.classList.add('text-red-500');
+                    errEl.innerText = "找不到資料";
+                }
+            } catch(e) {
+                errEl.classList.remove('text-blue-500'); errEl.classList.add('text-red-500');
+                errEl.innerText = "連線失敗";
+            }
+        };
+
+
+        window.multiSwitchPokemon = function(pIndex, pokeIndex, force = false) {
+            let p = multiPlayers[pIndex];
+            if (!p.isLoggedIn || p.isDefeated) return;
+            if (!force && p.phase !== 1) return; 
+            if (pokeIndex === p.activePokeIndex) return;
+            if (!p.party[pokeIndex]) return;
+            if (p.party[pokeIndex].currentHp !== undefined && p.party[pokeIndex].currentHp <= 0) return;
+            
+            p.activePokeIndex = pokeIndex;
+            window.updateMultiPlayerHp(pIndex);
+
+            let animWrapper = document.getElementById(`multi-sprite-anim-wrapper-${pIndex}`);
+            let img = document.getElementById(`multi-sprite-img-${pIndex}`);
+            
+            if(animWrapper && img) {
+                animWrapper.classList.add('translate-y-8', 'opacity-0');
+                
+                setTimeout(() => {
+                    p.activePokeIndex = pokeIndex;
+                    img.src = window.getBackSpriteUrl(p.party[pokeIndex].image);
+                    window.updateMultiPlayerHp(pIndex);
+                    
+                    const colorMap = {
+                        'blue': { border: 'border-blue-500', ring: 'ring-blue-400' },
+                        'red': { border: 'border-red-500', ring: 'ring-red-400' },
+                        'green': { border: 'border-green-500', ring: 'ring-green-400' },
+                        'yellow': { border: 'border-yellow-400', ring: 'ring-yellow-400' }
+                    };
+                    const c = colorMap[p.colorClass];
+                    
+                    for(let j=0; j<3; j++) {
+                        let slot = document.getElementById(`multi-party-slot-${pIndex}-${j}`);
+                        if(slot && p.party[j]) {
+                            let isDead = p.party[j].currentHp !== undefined && p.party[j].currentHp <= 0;
+                            if(j === pokeIndex) {
+                                slot.className = `w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-white/90 border-2 rounded-full flex items-center justify-center overflow-hidden shadow z-30 relative ring-[3px] sm:ring-[4px] ${c.ring} border-white cursor-pointer hover:bg-gray-100 hover:scale-110 transition-all`;
+                            } else {
+                                slot.className = `w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-white/90 border-2 rounded-full flex items-center justify-center overflow-hidden shadow z-30 relative border-gray-400 opacity-80 ${isDead ? 'opacity-40' : 'cursor-pointer hover:bg-gray-100 hover:scale-110 transition-all'}`;
+                            }
+                        }
+                    }
+                    animWrapper.classList.remove('translate-y-8', 'opacity-0');
+                }, 300);
+            }
+        };
+        window.updateMultiDisplay = function(pIndex) {
+            let p = multiPlayers[pIndex];
+            if (!p || !p.isLoggedIn || p.isDefeated) return;
+            let formulaEl = document.getElementById(`multi-formula-${pIndex}`);
+            let answerEl = document.getElementById(`multi-answer-${pIndex}`);
+            let ansRowEl = document.getElementById(`multi-ans-row-${pIndex}`);
+            if (formulaEl) {
+                if (p.phase === 1) {
+                    formulaEl.innerHTML = p.formula ? p.formula : '<span class="text-gray-400 font-normal">列式...</span>';
+                } else {
+                    formulaEl.innerText = p.formula;
+                }
+            }
+            if (ansRowEl && answerEl) {
+                if (p.phase === 1) {
+                    ansRowEl.classList.add('opacity-40');
+                    answerEl.innerHTML = '';
+                } else {
+                    ansRowEl.classList.remove('opacity-40');
+                    answerEl.innerHTML = p.answer ? p.answer : '<span class="text-gray-400 font-normal">計算...</span>';
+                }
+            }
+            window.updateMultiPlayerHp(pIndex);
+        };
+
+        window.updateMultiPlayerHp = function(pIndex) {
+            let p = multiPlayers[pIndex];
+            if (!p || !p.isLoggedIn || !p.party || p.party.length === 0) return;
+            let activePoke = p.party[p.activePokeIndex];
+            if (!activePoke) return;
+            if (activePoke.currentHp === undefined) activePoke.currentHp = 100;
+            if (!activePoke.maxHp) activePoke.maxHp = 100;
+            
+            let perc = Math.max(0, Math.min(100, Math.round((activePoke.currentHp / activePoke.maxHp) * 100)));
+            let hpBarEl = document.getElementById(`multi-player-hp-bar-${pIndex}`);
+            let hpTextEl = document.getElementById(`multi-player-hp-text-${pIndex}`);
+            
+            if (hpBarEl) {
+                hpBarEl.style.width = `${perc}%`;
+                hpBarEl.className = perc > 50 
+                    ? "absolute inset-y-0 left-0 bg-green-200/70 border-r-2 border-green-400 transition-all duration-500 z-0 pointer-events-none" 
+                    : perc > 25 
+                    ? "absolute inset-y-0 left-0 bg-yellow-200/70 border-r-2 border-yellow-400 transition-all duration-500 z-0 pointer-events-none" 
+                    : "absolute inset-y-0 left-0 bg-red-200/70 border-r-2 border-red-400 transition-all duration-500 z-0 pointer-events-none";
+            }
+            if (hpTextEl) {
+                hpTextEl.innerText = `${activePoke.currentHp}/${activePoke.maxHp}`;
+                hpTextEl.className = perc > 50 ? "text-[11px] font-bold text-green-700 flex-none ml-1" : perc > 25 ? "text-[11px] font-bold text-yellow-700 flex-none ml-1" : "text-[11px] font-bold text-red-700 flex-none ml-1 animate-pulse";
+            }
+        };
+
+        window.multiNumpadPress = function(pIndex, val) {
+            let p = multiPlayers[pIndex];
+            if (!p.isLoggedIn || p.phase === 3 || p.isDefeated) return; 
+            if (val === 'DEL') {
+                if (p.phase === 2) {
+                    if (p.answer && p.answer.length > 0) {
+                        p.answer = p.answer.slice(0, -1);
+                    } else {
+                        p.phase = 1;
+                    }
+                } else if (p.phase === 1) {
+                    if (p.formula && p.formula.length > 0) {
+                        p.formula = p.formula.slice(0, -1);
+                    }
+                }
+            } else {
+                if (p.phase === 1) {
+                    if (!p.formula) p.formula = '';
+                    if (p.formula.length < 25) {
+                        p.formula += val;
+                    }
+                } else if (p.phase === 2) {
+                    if (/^[0-9]$/.test(val)) {
+                        if (!p.answer) p.answer = '';
+                        if (p.answer.length < 6) {
+                            p.answer += val;
+                        }
+                    }
+                }
+            }
+            window.updateMultiDisplay(pIndex);
+        };
+
+        window.multiPlayerAttack = function(pIndex, damage = 10, isFinalHit = false) {
+            let p = multiPlayers[pIndex];
+            if (!p || !p.isLoggedIn || p.isDefeated) return;
+            p.totalDamage = (p.totalDamage || 0) + damage;
+
+            let animWrapper = document.getElementById(`multi-sprite-anim-wrapper-${pIndex}`);
+            if (animWrapper) {
+                // 計算面向畫面中心 (神獸位置) 的撞擊向量
+                let startX = 0, startY = 0;
+                let targetX = 0, targetY = 0;
+                let hasCoords = false;
+
+                try {
+                    let rect = animWrapper.getBoundingClientRect();
+                    startX = rect.left + rect.width / 2;
+                    startY = rect.top + rect.height / 2;
+
+                    let targetEl = elements.pokemonSprite || document.getElementById('pokemon-container');
+                    if (targetEl) {
+                        let tRect = targetEl.getBoundingClientRect();
+                        targetX = tRect.left + tRect.width / 2;
+                        targetY = tRect.top + tRect.height / 2;
+                        hasCoords = true;
+                    } else {
+                        targetX = window.innerWidth / 2;
+                        targetY = window.innerHeight * 0.3;
+                        hasCoords = true;
+                    }
+                } catch (e) {
+                    hasCoords = false;
+                }
+
+                let normX = 0, normY = -1;
+                if (hasCoords) {
+                    let dx = targetX - startX;
+                    let dy = targetY - startY;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > 10) {
+                        normX = dx / dist;
+                        normY = dy / dist;
+                    } else {
+                        normX = pIndex < 2 ? 0.6 : -0.6;
+                        normY = -0.8;
+                    }
+                } else {
+                    normX = pIndex < 2 ? 0.6 : -0.6;
+                    normY = -0.8;
+                }
+
+                let tackleDist = isFinalHit ? 75 : 55;
+                let hitX = Math.round(normX * tackleDist);
+                let hitY = Math.round(normY * tackleDist);
+                let pullX = Math.round(-normX * 10);
+                let pullY = Math.round(-normY * 10);
+
+                if (typeof animWrapper.animate === 'function') {
+                    animWrapper.animate([
+                        { transform: 'translate(calc(-50% + 0px), calc(35% + 0px)) scale(1)', zIndex: 50 },
+                        { transform: `translate(calc(-50% + ${pullX}px), calc(35% + ${pullY}px)) scale(1.05)`, zIndex: 50, offset: 0.3 },
+                        { transform: `translate(calc(-50% + ${hitX}px), calc(35% + ${hitY}px)) scale(1.2)`, zIndex: 50, offset: 0.5 },
+                        { transform: 'translate(calc(-50% + 0px), calc(35% + 0px)) scale(1)', zIndex: 50 }
+                    ], {
+                        duration: 500,
+                        easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)'
+                    });
+                } else {
+                    let fallbackClass = `multi-attack-p${pIndex}`;
+                    animWrapper.classList.add(fallbackClass);
+                    setTimeout(() => animWrapper.classList.remove(fallbackClass), 500);
+                }
+            }
+
+            setTimeout(() => {
+                elements.pokemonSprite.classList.add('gmax-hit');
+                setTimeout(() => elements.pokemonSprite.classList.remove('gmax-hit'), 500);
+                enemyHp = Math.max(0, enemyHp - damage);
+                window.updateHpBar();
+                if (enemyHp <= 0) {
+                    multiPlayers.forEach(mp => mp.phase = 3);
+                    elements.messageBox.innerHTML = `<span class="text-green-600 font-black text-xl">成功擊敗極巨化神獸！</span>`;
+                    setTimeout(() => {
+                        window.showMultiEndScreen(true);
+                    }, 1800);
+                }
+            }, 250);
+        };
+
+        window.multiEnemyAttackPlayer = function(pIndex) {
+            let p = multiPlayers[pIndex];
+            if (!p || !p.isLoggedIn || p.isDefeated) return;
+
+            elements.pokemonSprite.classList.add('pokemon-attack');
+            setTimeout(() => elements.pokemonSprite.classList.remove('pokemon-attack'), 500);
+            setTimeout(() => {
+                let animWrapper = document.getElementById(`multi-sprite-anim-wrapper-${pIndex}`);
+                if (animWrapper) {
+                    animWrapper.classList.add('pokemon-hit');
+                    setTimeout(() => animWrapper.classList.remove('pokemon-hit'), 500);
+                }
+                let panel = document.getElementById(`multi-panel-${pIndex}`);
+                if (panel) {
+                    panel.classList.add('shake', 'bg-red-200');
+                    setTimeout(() => panel.classList.remove('shake', 'bg-red-200'), 500);
+                }
+                // 扣減該玩家當前出戰寶可夢的血量
+                if (p && p.party && p.party[p.activePokeIndex]) {
+                    let activePoke = p.party[p.activePokeIndex];
+                    if (activePoke.currentHp === undefined) activePoke.currentHp = 100;
+                    activePoke.currentHp = Math.max(0, activePoke.currentHp - 25);
+                    window.updateMultiPlayerHp(pIndex);
+                    
+                    if (activePoke.currentHp <= 0) {
+                        let nextAlive = p.party.findIndex(pk => (pk.currentHp !== undefined && pk.currentHp > 0));
+                        if (nextAlive !== -1) {
+                            elements.messageBox.innerHTML = `<span class="text-red-600 font-black">${p.name} 的 ${activePoke.name} 倒下了！</span> 更換下一隻寶可夢！`;
+                            setTimeout(() => {
+                                window.multiSwitchPokemon(pIndex, nextAlive, true);
+                            }, 800);
+                        } else {
+                            // 當玩家3隻POKEMON都死亡後則於玩家的計算板面顯示 "已沒有可戰鬥的POKEMON"
+                            p.isDefeated = true;
+                            p.phase = 4;
+                            elements.messageBox.innerHTML = `<span class="text-red-600 font-black">${p.name} 的 3 隻寶可夢皆已倒下！已沒有可戰鬥的POKEMON！</span>`;
+                            window.updateMultiPlayerHp(pIndex);
+                            window.buildMultiplayerPanels();
+                            
+                            // 當4位玩家的POKEMON都輸掉時則 GAME OVER
+                            let loggedInPlayers = multiPlayers.filter(pl => pl.isLoggedIn);
+                            let allLost = loggedInPlayers.length > 0 && loggedInPlayers.every(pl => pl.isDefeated);
+                            if (allLost) {
+                                setTimeout(() => {
+                                    elements.messageBox.innerHTML = `<span class="text-red-600 font-black text-xl">全體玩家的寶可夢皆已陣亡... 討伐失敗！GAME OVER！</span>`;
+                                    setTimeout(() => {
+                                        window.showMultiEndScreen(false);
+                                    }, 1800);
+                                }, 1000);
+                            }
+                        }
+                    }
+                }
+            }, 250);
+        };
+
+        window.multiSubmit = function(pIndex) {
+            let p = multiPlayers[pIndex];
+            if (!p.isLoggedIn || p.phase === 3 || p.isDefeated) return;
+            if (p.phase === 1) {
+                if (!p.formula || p.formula.trim() === '') {
+                    elements.messageBox.innerHTML = `<span class="text-orange-600 font-bold">${p.name}：請先列出面積算式！</span>`;
+                    let panel = document.getElementById(`multi-panel-${pIndex}`);
+                    if (panel) {
+                        panel.classList.add('shake', 'bg-red-200');
+                        setTimeout(() => panel.classList.remove('shake', 'bg-red-200'), 400);
+                    }
+                    return;
+                }
+                let res = window.validateFormulaStrict(p.formula, p.question);
+                if (res.valid) {
+                    p.phase = 2;
+                    p.answer = '';
+                    window.updateMultiDisplay(pIndex);
+                    elements.messageBox.innerHTML = `<span class="text-green-600 font-black">${p.name} 列式正確！發動攻擊！請計算面積答案！</span>`;
+                    let panel = document.getElementById(`multi-panel-${pIndex}`);
+                    if (panel) {
+                        panel.classList.add('bg-green-100');
+                        setTimeout(() => panel.classList.remove('bg-green-100'), 400);
+                    }
+                    // 學生列式正確時讓 POKEMON 進行攻擊 (累積傷害)
+                    window.multiPlayerAttack(pIndex, 10);
+                } else {
+                    let hint = "";
+                    if (p.question.type === 0) hint = "底 × 高";
+                    else if (p.question.type === 1) hint = "底 × 高 ÷ 2";
+                    else if (p.question.type === 2) hint = "(上底+下底) × 高 ÷ 2";
+                    let enemyName = currentPokemon ? currentPokemon.name : "神獸";
+                    elements.messageBox.innerHTML = `<span class="text-red-600 font-black">${p.name} 列式有誤：${res.msg}</span> <span class="text-orange-600 font-bold>${enemyName} 發動反擊！</span>`;
+                    // 答錯時對方會攻擊該玩家
+                    window.multiEnemyAttackPlayer(pIndex);
+                }
+            } else if (p.phase === 2) {
+                if (!p.answer || p.answer.trim() === '') {
+                    elements.messageBox.innerHTML = `<span class="text-orange-600 font-bold">${p.name}：請輸入計算答案！</span>`;
+                    let panel = document.getElementById(`multi-panel-${pIndex}`);
+                    if (panel) {
+                        panel.classList.add('shake', 'bg-red-200');
+                        setTimeout(() => panel.classList.remove('shake', 'bg-red-200'), 400);
+                    }
+                    return;
+                }
+                let ans = parseInt(p.answer);
+                if (ans === p.question.answer) {
+                    p.phase = 3;
+                    p.score++;
+                    elements.messageBox.innerHTML = `<span class="text-green-600 font-black text-lg">${p.name} 計算正確！發動強力攻擊！</span>`;
+                    let panel = document.getElementById(`multi-panel-${pIndex}`);
+                    if (panel) {
+                        panel.classList.add('bg-green-100');
+                        setTimeout(() => panel.classList.remove('bg-green-100'), 400);
+                    }
+                    // 答案正確發動強力攻擊 (累積傷害)
+                    window.multiPlayerAttack(pIndex, 20, true);
+                    setTimeout(() => {
+                        if (enemyHp > 0 && !p.isDefeated) {
+                            p.question = window.generateAreaQuestion();
+                            window.drawShapeToCanvas(`multi-canvas-${pIndex}`, p.question, true);
+                            p.formula = '';
+                            p.answer = '';
+                            p.phase = 1;
+                            window.updateMultiDisplay(pIndex);
+                        }
+                    }, 700);
+                } else {
+                    p.answer = '';
+                    window.updateMultiDisplay(pIndex);
+                    let enemyName = currentPokemon ? currentPokemon.name : "神獸";
+                    elements.messageBox.innerHTML = `<span class="text-red-600 font-black">${p.name} 計算錯誤！</span> <span class="text-orange-600 font-bold>${enemyName} 發動反擊！</span>`;
+                    // 答錯時對方會攻擊該玩家
+                    window.multiEnemyAttackPlayer(pIndex);
+                }
+            }
+        };
+
+        window.showMultiEndScreen = function(isVictory) {
+            const endTitle = document.getElementById('multi-end-title');
+            const endIcon = document.getElementById('multi-end-icon');
+            const endSubtitle = document.getElementById('multi-end-subtitle');
+            const winnerName = document.getElementById('multi-winner-name');
+            const chartContainer = document.getElementById('multi-damage-chart-container');
+            
+            if (endTitle) {
+                endTitle.innerText = isVictory ? "極巨化神獸討伐成功！" : "討伐失敗... GAME OVER";
+                endTitle.className = isVictory ? "text-3xl sm:text-5xl font-black text-purple-800 mb-2 drop-shadow-sm tracking-wider" : "text-3xl sm:text-5xl font-black text-red-600 mb-2 drop-shadow-sm tracking-wider";
+            }
+            if (endIcon) {
+                endIcon.innerText = isVictory ? "🏆" : "💀";
+            }
+            if (endSubtitle) {
+                endSubtitle.innerText = isVictory ? "全體玩家合力擊敗了強敵！" : "全體玩家的寶可夢皆已倒下...";
+            }
+            
+            // 整理 4 位玩家的傷害數據並依總傷害由大至小排序
+            const sorted = multiPlayers.map((p, idx) => ({
+                ...p,
+                playerIndex: idx,
+                totalDamage: p.totalDamage || 0,
+                displayName: p.isLoggedIn ? (p.name || `玩家 ${idx + 1}`) : `玩家 ${idx + 1} (未登入)`
+            })).sort((a, b) => b.totalDamage - a.totalDamage);
+            
+            const mvp = sorted[0];
+            if (winnerName) {
+                if (mvp && mvp.totalDamage > 0) {
+                    winnerName.innerHTML = `👑 MVP 是 <span class="text-red-600 font-black">${mvp.displayName}</span><br><span class="text-lg sm:text-xl text-gray-700 font-bold">總共輸出了 ${mvp.totalDamage} 點傷害！</span>`;
+                } else {
+                    winnerName.innerHTML = `<span class="text-lg sm:text-xl text-gray-700 font-bold">四位玩家傷害排行榜</span>`;
+                }
+            }
+            
+            if (chartContainer) {
+                const maxDamage = Math.max(...sorted.map(s => s.totalDamage), 1);
+                const rankMedals = ['🥇', '🥈', '🥉', '4️⃣'];
+                const colorBgMap = {
+                    'blue': 'bg-blue-500',
+                    'red': 'bg-red-500',
+                    'green': 'bg-green-500',
+                    'yellow': 'bg-yellow-500'
+                };
+                const colorBarMap = {
+                    'blue': 'bg-gradient-to-r from-blue-400 to-blue-600',
+                    'red': 'bg-gradient-to-r from-red-400 to-red-600',
+                    'green': 'bg-gradient-to-r from-green-400 to-green-600',
+                    'yellow': 'bg-gradient-to-r from-yellow-400 to-amber-500'
+                };
+                const colorBorderMap = {
+                    'blue': 'border-blue-300',
+                    'red': 'border-red-300',
+                    'green': 'border-green-300',
+                    'yellow': 'border-yellow-300'
+                };
+
+                let chartHtml = `
+                    <div class="flex items-center justify-between border-b pb-2 mb-1">
+                        <span class="text-[14px] font-black text-gray-800">📊 四位玩家總傷害統計排行榜 (橫向棒形圖)</span>
+                        <span class="text-xs text-gray-500 font-bold">神獸初始血量: 400</span>
+                    </div>
+                    <div class="flex flex-col gap-2.5 w-full">
+                `;
+                
+                sorted.forEach((p, rankIdx) => {
+                    const perc = maxDamage > 0 && p.totalDamage > 0 ? Math.max(10, Math.round((p.totalDamage / maxDamage) * 100)) : 0;
+                    const cBg = colorBgMap[p.colorClass] || 'bg-gray-400';
+                    const cBar = colorBarMap[p.colorClass] || 'bg-gray-400';
+                    const cBorder = colorBorderMap[p.colorClass] || 'border-gray-200';
+                    
+                    chartHtml += `
+                    <div class="flex flex-col gap-1 w-full bg-gray-50 p-2 sm:p-2.5 rounded-xl border ${cBorder} text-left">
+                        <div class="flex items-center justify-between text-[14px] font-black">
+                            <div class="flex items-center gap-1.5 truncate">
+                                <span class="text-base flex-none">${rankMedals[rankIdx]}</span>
+                                <span class="px-2 py-0.5 rounded text-white text-xs font-black flex-none ${cBg}">玩家 ${p.playerIndex + 1}</span>
+                                <span class="text-gray-800 truncate text-[14px] font-bold">${p.displayName}</span>
+                            </div>
+                            <div class="text-[14px] font-black text-gray-800 flex-none ml-2">
+                                ${p.totalDamage} <span class="text-xs text-gray-500 font-normal">傷害</span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4 sm:h-5 overflow-hidden shadow-inner flex items-center">
+                            <div class="h-full rounded-full ${cBar} transition-all duration-1000 flex items-center justify-end pr-2 text-[11px] font-black text-white" style="width: ${perc}%;">
+                                ${p.totalDamage > 0 ? p.totalDamage : ''}
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                });
+                
+                chartHtml += `</div>`;
+                chartContainer.innerHTML = chartHtml;
+            }
+            
+            window.showScreen('multiEnd');
+        };
+        window.savePlayerData = async function() {
+            if (gameMode === 'multi' || !currentStudentId || GAS_URL.includes("請將您的")) return; 
+            try {
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        action: 'save',
+                        id: currentStudentId,
+                        poke1: playerParty[0] ? playerParty[0].name : "",
+                        poke2: playerParty[1] ? playerParty[1].name : "",
+                        poke3: playerParty[2] ? playerParty[2].name : "",
+                        tri_total: gameStats.triangle.total,
+                        tri_correct: gameStats.triangle.correct,
+                        para_total: gameStats.parallelogram.total,
+                        para_correct: gameStats.parallelogram.correct,
+                        trap_total: gameStats.trapezoid.total,
+                        trap_correct: gameStats.trapezoid.correct
+                    })
+                });
+            } catch(e) { console.error("存檔失敗", e); }
+        };
+
+        window.handleLogin = async function() {
+            const classVal = document.getElementById('login-class').value;
+            const numVal = document.getElementById('login-num').value;
+            const idInput = window.getCombinedId(classVal, numVal);
+            const pwdInput = document.getElementById('login-pwd').value.trim();
+            const errBox = document.getElementById('login-error');
+            const loadBox = document.getElementById('login-loading');
+            const btnLogin = document.getElementById('btn-login');
+
+            if (!pwdInput) {
+                errBox.innerText = "請輸入密碼！"; errBox.classList.remove('hidden'); return;
+            }
+
+            if (idInput === "student1" && pwdInput === "123") {
+                errBox.classList.add('hidden'); currentStudentId = idInput; currentPassword = pwdInput;
+                playerParty = []; score = 0; activePlayerIndex = 0;
+                gameStats = { parallelogram: {total:0,correct:0}, triangle: {total:0,correct:0}, trapezoid: {total:0,correct:0} };
+                
+                document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
+                elements.singleBottomPanel.classList.remove('hidden');
+                elements.multiBottomPanel.classList.add('hidden');
+                document.getElementById('multi-player-sprites-container').classList.add('hidden');
+                
+                elements.canvasWrapper.classList.remove('hidden');
+                elements.headerTitleText.innerText = "面積大挑戰";
+                elements.headerTrainerInfo.classList.remove('hidden');
+                elements.headerScoreInfo.classList.remove('hidden');
+                elements.headerHomeBtn.classList.remove('hidden');
+                elements.enemyInfoContainer.classList.remove('left-1/2', 'transform', '-translate-x-1/2');
+                elements.messageBox.classList.remove('hidden');
+                elements.gmaxCloud.classList.add('hidden');
+                elements.multiHpText.classList.add('hidden');
+                elements.pokemonImg.classList.remove('gmax-boss');
+                
+                elements.canvasWrapper.className = "w-1/2 h-full flex flex-col justify-start pt-4 sm:pt-6 items-start pl-2 sm:pl-6 relative z-10 transition-all duration-300";
+                elements.enemyWrapper.className = "w-1/2 h-full flex flex-col items-center justify-start pt-12 sm:pt-16 pr-2 sm:pr-8 relative z-10 transition-all duration-300";
+                
+                elements.headerStudentId.innerText = currentStudentId; elements.score.innerText = score; elements.gameHeader.classList.remove('hidden');
+                window.showScreen('starter'); return;
+            }
+
+            if (GAS_URL.includes("請將您的")) {
+                errBox.innerText = "連線網址尚未設定！請先使用 student1 進行單機預覽。"; errBox.classList.remove('hidden'); return;
+            }
+
+            errBox.classList.add('hidden'); loadBox.classList.remove('hidden'); btnLogin.disabled = true; 
+
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: 'login', id: idInput, password: pwdInput })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentStudentId = idInput; currentPassword = pwdInput;
+                    
+                    gameStats.triangle.total = data.tri_total || 0;
+                    gameStats.triangle.correct = data.tri_correct || 0;
+                    gameStats.parallelogram.total = data.para_total || 0;
+                    gameStats.parallelogram.correct = data.para_correct || 0;
+                    gameStats.trapezoid.total = data.trap_total || 0;
+                    gameStats.trapezoid.correct = data.trap_correct || 0;
+
+                    score = gameStats.triangle.correct + gameStats.parallelogram.correct + gameStats.trapezoid.correct;
+                    
+                    playerParty = []; activePlayerIndex = 0;
+                    let p1 = window.getPokemonByName(data.poke1); if(p1){ p1.currentHp = p1.stats.hp; playerParty.push(p1); }
+                    let p2 = window.getPokemonByName(data.poke2); if(p2){ p2.currentHp = p2.stats.hp; playerParty.push(p2); }
+                    let p3 = window.getPokemonByName(data.poke3); if(p3){ p3.currentHp = p3.stats.hp; playerParty.push(p3); }
+                    
+                    document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
+                    elements.singleBottomPanel.classList.remove('hidden');
+                    elements.multiBottomPanel.classList.add('hidden');
+                    document.getElementById('multi-player-sprites-container').classList.add('hidden');
+                    
+                    elements.canvasWrapper.classList.remove('hidden');
+                    elements.headerTitleText.innerText = "面積大挑戰";
+                    elements.headerTrainerInfo.classList.remove('hidden');
+                    elements.headerScoreInfo.classList.remove('hidden');
+                    elements.headerHomeBtn.classList.remove('hidden');
+                    elements.enemyInfoContainer.classList.remove('left-1/2', 'transform', '-translate-x-1/2');
+                    elements.messageBox.classList.remove('hidden');
+                    elements.gmaxCloud.classList.add('hidden');
+                    elements.multiHpText.classList.add('hidden');
+                    elements.pokemonImg.classList.remove('gmax-boss');
+                    
+                    elements.canvasWrapper.className = "w-1/2 h-full flex flex-col justify-start pt-4 sm:pt-6 items-start pl-2 sm:pl-6 relative z-10 transition-all duration-300";
+                    elements.enemyWrapper.className = "w-1/2 h-full flex flex-col items-center justify-start pt-12 sm:pt-16 pr-2 sm:pr-8 relative z-10 transition-all duration-300";
+                    
+                    elements.headerStudentId.innerText = currentStudentId;
+                    elements.score.innerText = score;
+                    elements.gameHeader.classList.remove('hidden');
+                    
+                    if (playerParty.length === 0) { window.showScreen('starter'); } 
+                    else { window.showScreen('start'); }
+                } else {
+                    errBox.innerText = data.message; errBox.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error(e);
+                errBox.innerText = "連線失敗，請稍後再試。"; errBox.classList.remove('hidden');
+            }
+            loadBox.classList.add('hidden'); btnLogin.disabled = false;
+        };
+
+        window.logout = function() {
+            currentStudentId = null; currentPassword = null;
+            playerParty = []; score = 0; activePlayerIndex = 0;
+            document.getElementById('login-pwd').value = '';
+            elements.gameHeader.classList.add('hidden');
+            elements.messageBox.classList.add('hidden');
+            window.showScreen('mode');
+        };
+
+        /* STREAMING_CHUNK:Question Generation and Canvas Logic... */
+        window.rand = function(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; };
+        window.generateAreaQuestion = function() {
+            let type = window.rand(0, 2);
+            let q = { type: type };
+            q.rotation = window.rand(0, 359) * Math.PI / 180; 
+            
+            if (type === 0) { 
+                q.height = window.rand(4, 8);
+                q.base = window.rand(6, 12);
+                q.side = q.height + window.rand(1, 4);
+                while (q.side === q.base || q.side === q.height) {
+                    q.side++;
+                }
+                q.answer = q.base * q.height;
+            } 
+            else if (type === 1) { 
+                q.height = window.rand(4, 8);
+                q.base = window.rand(6, 12);
+                if ((q.base * q.height) % 2 !== 0) q.base++; 
+                let p = Math.max(2, Math.round(q.base * 0.3));
+                let s1 = Math.max(q.height + 1, Math.round(Math.sqrt(p * p + q.height * q.height)));
+                let s2 = Math.max(q.height + 1, Math.round(Math.sqrt(Math.pow(q.base - p, 2) + q.height * q.height)));
+                while (s1 <= q.height || s1 === q.base) s1++;
+                while (s2 <= q.height || s2 === q.base || s2 === s1) s2++;
+                q.side1 = s1;
+                q.side2 = s2;
+                q.answer = (q.base * q.height) / 2;
+            } 
+            else { 
+                q.height = window.rand(4, 8);
+                q.top = window.rand(4, 8);
+                q.bottom = q.top + window.rand(2, 6);
+                if (((q.top + q.bottom) * q.height) % 2 !== 0) q.height++;
+                q.side = q.height + window.rand(1, 4);
+                while (q.side === q.top || q.side === q.bottom || q.side === q.height) {
+                    q.side++;
+                }
+                q.answer = ((q.top + q.bottom) * q.height) / 2;
+            }
+            return q;
+        };
+
+        window.checkOverlap = function(x1, x2, threshold = 55) {
+            return Math.abs(x1 - x2) < threshold;
+        };
+
+        window.drawShapeToCanvas = function(canvasId, q, isMini = false) {
+            let canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            let ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let w = canvas.width;
+            let h = canvas.height;
+            
+            ctx.save();
+            ctx.translate(w / 2, h / 2);
+            ctx.rotate(q.rotation);
+
+            ctx.lineWidth = isMini ? 2 : 4; 
+            ctx.font = isMini ? "bold 12px 'Noto Sans TC'" : "bold 16px 'Noto Sans TC'"; 
+            ctx.textAlign = "center"; 
+            ctx.textBaseline = "middle";
+
+            function drawText(text, x, y) {
+                ctx.save(); 
+                ctx.translate(x, y); 
+                ctx.rotate(-q.rotation); 
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"; 
+                ctx.lineWidth = isMini ? 3 : 5; 
+                ctx.lineJoin = "round";
+                ctx.strokeText(text, 0, 0); 
+                ctx.fillStyle = "#111827"; 
+                ctx.fillText(text, 0, 0); 
+                ctx.restore();
+            }
+
+            const MAX_RADIUS_W = isMini ? 65 : 140; 
+            const MAX_RADIUS_H = isMini ? 45 : 100;
+            let textOffset = isMini ? 16 : 25;
+            let overlapOffset = isMini ? 14 : 24;
+
+            if (q.type === 0) { 
+                let logicalW = q.base + q.height * 0.4; 
+                let logicalH = q.height;
+                let currentRadius = Math.sqrt(Math.pow(logicalW/2, 2) + Math.pow(logicalH/2, 2));
+                let scale = Math.min(MAX_RADIUS_W, MAX_RADIUS_H) / currentRadius;
+
+                let pBase = q.base * scale;
+                let pHeight = q.height * scale;
+                let slant = pHeight * 0.4; 
+
+                let left = -(pBase + slant) / 2;
+                let top = -pHeight / 2;
+
+                ctx.fillStyle = "#a7f3d0"; ctx.strokeStyle = "#059669";
+                ctx.beginPath();
+                ctx.moveTo(left + slant, top);
+                ctx.lineTo(left + slant + pBase, top);
+                ctx.lineTo(left + pBase, top + pHeight);
+                ctx.lineTo(left, top + pHeight);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+
+                let dashX = left + slant; 
+                ctx.setLineDash([isMini?3:6, isMini?3:6]); ctx.beginPath();
+                ctx.moveTo(dashX, top); ctx.lineTo(dashX, top + pHeight);
+                ctx.stroke(); ctx.setLineDash([]); 
+                ctx.strokeRect(dashX, top + pHeight - (isMini?4:8), isMini?4:8, isMini?4:8);
+
+                let hX = dashX + textOffset;
+                let sX = left + slant/2 - textOffset;
+                let hY = 0, sY = 0;
+                
+                if (window.checkOverlap(hX, sX, isMini?35:55)) { hY = overlapOffset; sY = -overlapOffset; }
+
+                drawText(q.base + " m", left + pBase/2 + slant/2, top + pHeight + textOffset);
+                drawText(q.height + " m", hX, hY); 
+                drawText(q.side + " m", sX, sY);
+            }
+            else if (q.type === 1) { 
+                let logicalW = q.base;
+                let logicalH = q.height;
+                let currentRadius = Math.sqrt(Math.pow(logicalW/2, 2) + Math.pow(logicalH/2, 2));
+                let scale = Math.min(MAX_RADIUS_W, MAX_RADIUS_H) / currentRadius;
+
+                let tBase = q.base * scale;
+                let tHeight = q.height * scale;
+                let topX = tBase * 0.3; 
+
+                let left = -tBase / 2;
+                let top = -tHeight / 2;
+                let bottom = tHeight / 2;
+
+                ctx.fillStyle = "#fecaca"; ctx.strokeStyle = "#dc2626";
+                ctx.beginPath(); 
+                ctx.moveTo(left + topX, top);
+                ctx.lineTo(left + tBase, bottom); 
+                ctx.lineTo(left, bottom);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+
+                ctx.setLineDash([isMini?3:6, isMini?3:6]); ctx.beginPath();
+                ctx.moveTo(left + topX, top); ctx.lineTo(left + topX, bottom);
+                ctx.stroke(); ctx.setLineDash([]); 
+                ctx.strokeRect(left + topX, bottom - (isMini?4:8), isMini?4:8, isMini?4:8);
+
+                let hX = left + topX - (isMini?14:22);
+                let s1X = left + topX/2 - textOffset;
+                let hY = 0, s1Y = 0;
+                
+                if (window.checkOverlap(hX, s1X, isMini?35:55)) { hY = overlapOffset; s1Y = -overlapOffset; }
+
+                drawText(q.base + " m", left + tBase/2, bottom + textOffset); 
+                drawText(q.height + " m", hX, hY);
+                drawText(q.side1 + " m", s1X, s1Y); 
+                drawText(q.side2 + " m", left + (topX + tBase)/2 + textOffset, 0);
+            }
+            else if (q.type === 2) { 
+                let visualOffset = q.height * 0.4;
+                let logicalW = Math.max(q.bottom, q.top + visualOffset);
+                let logicalH = q.height;
+                let currentRadius = Math.sqrt(Math.pow(logicalW/2, 2) + Math.pow(logicalH/2, 2));
+                let scale = Math.min(MAX_RADIUS_W, MAX_RADIUS_H) / currentRadius;
+
+                let bWidth = q.bottom * scale;
+                let tWidth = q.top * scale;
+                let trHeight = q.height * scale;
+                let offset = trHeight * 0.4;
+
+                let left = -bWidth / 2;
+                let top = -trHeight / 2;
+                let bottom = trHeight / 2;
+
+                ctx.fillStyle = "#bfdbfe"; ctx.strokeStyle = "#2563eb";
+                ctx.beginPath(); 
+                ctx.moveTo(left + offset, top); 
+                ctx.lineTo(left + offset + tWidth, top);
+                ctx.lineTo(left + bWidth, bottom); 
+                ctx.lineTo(left, bottom);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+
+                ctx.setLineDash([isMini?3:6, isMini?3:6]); ctx.beginPath();
+                ctx.moveTo(left + offset, top); ctx.lineTo(left + offset, bottom);
+                ctx.stroke(); ctx.setLineDash([]); 
+                ctx.strokeRect(left + offset, bottom - (isMini?4:8), isMini?4:8, isMini?4:8);
+
+                let hX = left + offset + textOffset;
+                let sX = left + offset/2 - textOffset;
+                let hY = 0, sY = 0;
+
+                if (window.checkOverlap(hX, sX, isMini?35:55)) { hY = overlapOffset; sY = -overlapOffset; }
+
+                drawText(q.bottom + " m", left + bWidth/2, bottom + textOffset); 
+                drawText(q.top + " m", left + offset + tWidth/2, top - textOffset);
+                drawText(q.height + " m", hX, hY); 
+                drawText(q.side + " m", sX, sY);
+            }
+            ctx.restore();
+        };
+
+        /* STREAMING_CHUNK:Single Player Logic... */
+        window.numpadPress = function(val) {
+            if (currentPhase === 1) {
+                if (val === 'DEL') playerFormulaStr = playerFormulaStr.slice(0, -1);
+                else playerFormulaStr += val;
+                elements.formulaDisplay.innerText = playerFormulaStr;
+            } else if (currentPhase === 2) {
+                if (['+', '-', '×', '÷', '(', ')'].includes(val)) return; 
+                if (val === 'DEL') playerAnswerStr = playerAnswerStr.slice(0, -1);
+                else if (playerAnswerStr.length < 5) playerAnswerStr += val;
+                elements.answerDisplay.innerText = playerAnswerStr;
+            }
+        };
+
+        window.validateFormulaStrict = function(formulaStr, q) {
+            if (!formulaStr || !formulaStr.trim()) return { valid: false, msg: "請輸入算式！" };
+            let normalized = formulaStr.replace(/[xX*]/g, '×').replace(/[/]|除/g, '÷');
+            let expr = normalized.replace(/×/g, '*').replace(/÷/g, '/');
+            let val;
+            try { 
+                val = eval(expr); 
+                if (!Number.isFinite(val)) throw new Error(); 
+            } catch (e) { 
+                return { valid: false, msg: "算式格式錯誤或不完整！" }; 
+            }
+            if (Math.abs(val - q.answer) > 0.001) return { valid: false, msg: "算式的計算結果與目標面積不符！" };
+
+            let nums = normalized.match(/\d+/g);
+            if (!nums) return { valid: false, msg: "算式中沒有數字！" };
+            let numVals = nums.map(Number);
+            let required = []; 
+            let distractors = [];
+            
+            if (q.type === 0) { 
+                required = [q.base, q.height]; 
+                distractors = [q.side]; 
+            } else if (q.type === 1) { 
+                required = [q.base, q.height, 2]; 
+                distractors = [q.side1, q.side2]; 
+            } else if (q.type === 2) { 
+                required = [q.top, q.bottom, q.height, 2]; 
+                distractors = [q.side]; 
+            }
+
+            let validDistractors = distractors.filter(d => d !== undefined && !required.includes(d));
+            for (let d of validDistractors) { 
+                if (numVals.includes(d)) return { valid: false, msg: "使用到了錯誤的邊長資訊！" }; 
+            }
+            let tempNumVals = [...numVals];
+            for (let req of required) {
+                let idx = tempNumVals.indexOf(req);
+                if (idx === -1) return { valid: false, msg: "算式似乎漏掉了必要的數字 (底、高或 2)！" };
+                tempNumVals.splice(idx, 1);
+            }
+            if (tempNumVals.length > 0) {
+                return { valid: false, msg: "算式包含多餘的數字！" };
+            }
+            return { valid: true, msg: "正確！" };
+        };
+
+
+        window.recordAttempt = function(isCorrect) {
+            const types = ['parallelogram', 'triangle', 'trapezoid'];
+            const typeKey = types[currentQuestion.type];
+            gameStats[typeKey].total++;
+            if (isCorrect) {
+                gameStats[typeKey].correct++;
+                score = gameStats.parallelogram.correct + gameStats.triangle.correct + gameStats.trapezoid.correct;
+                elements.score.innerText = score;
+            }
+            window.savePlayerData();
+        };
+
+
+        window.checkFormula = function() {
+            let res = window.validateFormulaStrict(playerFormulaStr, currentQuestion);
+            if (res.valid) {
+                currentPhase = 2; elements.phase2.classList.remove('hidden');
+                elements.messageBox.innerHTML = `<span class="text-green-600">列式正確！發動攻擊！</span> 請繼續計算答案！`;
+                window.attackPokemon(0.5);
+            } else { 
+                let hint = "";
+                if(currentQuestion.type === 0) hint = "底 × 高";
+                else if(currentQuestion.type === 1) hint = "底 × 高 ÷ 2";
+                else if(currentQuestion.type === 2) hint = "(上底+下底) × 高 ÷ 2";
+                window.handleWrongAnswer(`${res.msg} <span class="text-blue-700 text-xs sm:text-sm ml-1">公式: ${hint}</span>`, 1); 
+            }
+        };
+
+        window.checkAnswer = function() {
+            let ans = parseInt(playerAnswerStr);
+            if (isNaN(ans)) { elements.messageBox.innerHTML = `<span class="text-orange-600">提示：</span> 請輸入面積答案！`; return; }
+            if (ans === currentQuestion.answer) {
+                window.recordAttempt(true);
+                window.attackPokemon(1.5, true);
+            } else {
+                window.handleWrongAnswer(`計算錯誤！請再仔細算一次！`, 2);
+            }
+        };
+
+        window.handleWrongAnswer = function(errorMsg, returnPhase = 1) {
+            window.recordAttempt(false);
+            elements.messageBox.innerHTML = `<span class="text-red-600 font-black">${errorMsg}</span>`;
+            currentPhase = 3; 
+            setTimeout(() => { 
+                elements.messageBox.innerHTML = `<span class="text-gray-800 font-bold">${currentPokemon.name} 趁機攻擊！</span>`;
+                window.executeWildPokemonAttack(returnPhase); 
+            }, 1800); 
+        };
+
+        window.switchPokemon = function(index) {
+            if (currentPhase === 3 || gameMode === 'multi') return; 
+            if (index === activePlayerIndex) return; 
+            if (!playerParty[index] || playerParty[index].currentHp <= 0) return; 
+            
+            elements.playerSpriteContainer.classList.add('translate-y-12', 'opacity-0');
+            
+            setTimeout(() => {
+                activePlayerIndex = index;
+                playerMaxHp = playerParty[activePlayerIndex].stats.hp; 
+                playerHp = playerParty[activePlayerIndex].currentHp; 
+                elements.playerName.innerText = playerParty[activePlayerIndex].name; 
+                elements.playerSprite.src = window.getBackSpriteUrl(playerParty[activePlayerIndex].image); 
+                window.updatePlayerHpBar();
+                window.renderParty();
+                
+                elements.playerSpriteContainer.classList.remove('translate-y-12', 'opacity-0');
+                elements.messageBox.innerHTML = `回來吧！去吧！<span class="text-blue-600 font-bold">${playerParty[activePlayerIndex].name}</span>！`;
+                
+                setTimeout(() => {
+                    if (currentPhase === 1) elements.messageBox.innerText = `請重新列出圖形的面積算式！`;
+                    else if (currentPhase === 2) elements.messageBox.innerText = `請重新計算出正確答案！`;
+                }, 1500);
+            }, 300); 
+        };
+
+        window.renderParty = function() {
+            if(gameMode === 'multi') return;
+            elements.playerParty.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const slot = document.createElement('div');
+                slot.className = "w-10 h-10 sm:w-14 sm:h-14 bg-white/90 border-4 border-gray-400 rounded-full flex items-center justify-center overflow-hidden shadow-lg cursor-pointer hover:bg-gray-100 hover:scale-110 transition-all z-30 relative";
+                slot.onclick = () => window.switchPokemon(i); 
+                
+                if (playerParty[i]) {
+                    const img = document.createElement('img'); img.src = playerParty[i].image; 
+                    img.className = "w-[120%] h-[120%] object-contain transition-all drop-shadow";
+                    if (playerParty[i].currentHp <= 0) {
+                        img.classList.add("fainted"); 
+                        slot.classList.add("opacity-60");
+                    }
+                    slot.appendChild(img); 
+                    if (i === activePlayerIndex) {
+                        slot.classList.replace("border-gray-400", "border-blue-500");
+                        slot.classList.add("ring-[4px]", "ring-blue-300");
+                    }
+                } else {
+                    slot.classList.add("bg-gray-200", "opacity-50");
+                }
+                elements.playerParty.appendChild(slot);
+            }
+        };
+
+        window.spawnPokemon = function() {
+            let pool;
+            if (gameMode === 'multi') {
+                pool = pokemonData.gigantamax_legendaries;
+                enemyMaxHp = 400; // 四人模式打極巨化王
+                elements.gmaxCloud.classList.remove('hidden');
+                elements.multiHpText.classList.remove('hidden');
+                if (elements.multiBossHpContainer) elements.multiBossHpContainer.classList.remove('hidden');
+                if (elements.enemyInfoContainer) elements.enemyInfoContainer.classList.add('hidden');
+                elements.multiHpText.innerText = "400/400";
+            } else {
+                pool = score < 8 ? pokemonData.stage3_form1 : (score < 16 ? pokemonData.stage2_form1 : pokemonData.legendary);
+                enemyMaxHp = currentPokemon ? currentPokemon.stats.hp : 100;
+                elements.gmaxCloud.classList.add('hidden');
+                elements.multiHpText.classList.add('hidden');
+                if (elements.multiBossHpContainer) elements.multiBossHpContainer.classList.add('hidden');
+                if (elements.enemyInfoContainer) elements.enemyInfoContainer.classList.remove('hidden');
+            }
+            
+            currentPokemon = pool[Math.floor(Math.random() * pool.length)];
+            if(gameMode === 'single') enemyMaxHp = currentPokemon.stats.hp;
+            enemyHp = enemyMaxHp;
+            
+            elements.enemyName.innerText = currentPokemon.name; window.updateHpBar();
+            elements.pokemonImg.src = currentPokemon.image;
+            
+            if (gameMode === 'multi') {
+                elements.pokemonImg.classList.add('gmax-boss');
+                elements.messageBox.innerText = `⚠️ 警告：野生 Lv.50 ${currentPokemon.name} 出現了！大家合力擊敗牠！`;
+            } else {
+                elements.pokemonImg.classList.remove('gmax-boss');
+                elements.messageBox.innerText = `野生 Lv.50 ${currentPokemon.name} 出現了！請在右方列出圖形的面積算式！`;
+            }
+            
+            elements.pokemonImg.classList.remove('hidden'); elements.pokemonShadow.classList.remove('hidden'); elements.pokeball.classList.add('hidden');
+            window.generateNewTurn(true);
+        };
+
+        window.generateNewTurn = function(newQuestion = true) {
+            currentPhase = 1; 
+            if (gameMode === 'single') {
+                playerFormulaStr = ""; playerAnswerStr = "";
+                elements.formulaDisplay.innerText = ""; elements.answerDisplay.innerText = "";
+                elements.phase1.classList.remove('hidden'); elements.phase2.classList.add('hidden');
+                if (newQuestion) { 
+                    currentQuestion = window.generateAreaQuestion(); 
+                    window.drawShapeToCanvas('shape-canvas', currentQuestion, false); 
+                }
+            }
+        };
+
+        window.discardNewPokemon = function() { elements.replaceModal.classList.add('hidden'); window.savePlayerData(); window.checkWinCondition(); };
+        window.replacePokemon = function(index) {
+            playerParty[index] = newlyCaughtPokemon; window.renderParty(); elements.replaceModal.classList.add('hidden');
+            if (index === activePlayerIndex) { 
+                playerMaxHp = playerParty[index].stats.hp; playerHp = playerParty[index].currentHp; 
+                elements.playerName.innerText = playerParty[index].name; 
+                elements.playerSprite.src = window.getBackSpriteUrl(playerParty[index].image); 
+                window.updatePlayerHpBar(); 
+            }
+            window.savePlayerData(); window.checkWinCondition();
+        };
+
+        window.checkWinCondition = function() {
+            if (score >= 20) {
+                window.processEvolutions(() => { elements.finalScore.innerText = score; window.showScreen('end'); });
+            } else {
+                window.processEvolutions(() => { 
+                    window.showScreen('battle'); 
+                    elements.overlay.classList.remove('hidden'); elements.overlay.classList.add('animate-encounter');
+                    setTimeout(() => { window.spawnPokemon(); }, 1200);
+                    setTimeout(() => { elements.overlay.classList.remove('animate-encounter'); elements.overlay.classList.add('hidden'); }, 2200);
+                });
+            }
+        };
+
+        window.processEvolutions = function(callback) {
+            evolutionQueue = [];
+            if (score >= 5) {
+                for (let i = 0; i < playerParty.length; i++) {
+                    if (playerParty[i] === newlyCaughtPokemon) continue;
+                    if (playerParty[i].nextEvolution && pokemonData.evolutions[playerParty[i].nextEvolution]) {
+                        evolutionQueue.push({ index: i, oldPoke: playerParty[i], newPoke: pokemonData.evolutions[playerParty[i].nextEvolution] });
+                        break;
+                    }
+                }
+            }
+            newlyCaughtPokemon = null; 
+            if (evolutionQueue.length === 0) { callback(); return; }
+            window.showScreen('evolution'); window.runNextEvolution(callback);
+        };
+
+        window.runNextEvolution = function(callback) {
+            if (evolutionQueue.length === 0) {
+                window.renderParty();
+                if (playerParty[activePlayerIndex]) { 
+                    playerMaxHp = playerParty[activePlayerIndex].stats.hp; playerHp = playerParty[activePlayerIndex].currentHp; 
+                    elements.playerName.innerText = playerParty[activePlayerIndex].name; 
+                    elements.playerSprite.src = window.getBackSpriteUrl(playerParty[activePlayerIndex].image); 
+                    window.updatePlayerHpBar(); 
+                }
+                window.savePlayerData(); callback(); return;
+            }
+
+            const { index, oldPoke, newPoke } = evolutionQueue.shift();
+            const evoMessage = document.getElementById('evo-message'); const evoImg = document.getElementById('evo-img'); const evoNextBtn = document.getElementById('evo-next-btn');
+            
+            evoMessage.className = "text-2xl sm:text-3xl font-black text-white mb-12 text-center animate-pulse";
+            evoMessage.innerText = `什麼？${oldPoke.name} 樣子有點奇怪...`;
+            evoImg.src = oldPoke.image; evoImg.className = "w-48 h-48 sm:w-56 sm:h-56 object-contain relative z-10 transition-all";
+            evoNextBtn.classList.add('hidden');
+
+            let flashes = 0; let isNew = false; let speed = 400;
+            function doFlash() {
+                if (flashes >= 14) {
+                    evoImg.src = newPoke.image; evoImg.className = "w-56 h-56 sm:w-64 sm:h-64 object-contain relative z-10 pokemon-float transition-all duration-1000 drop-shadow-[0_0_20px_rgba(255,255,255,0.8)]";
+                    evoMessage.className = "text-2xl sm:text-3xl font-black text-yellow-300 mb-12 text-center"; evoMessage.innerText = `恭喜！你的 ${oldPoke.name} 進化成了 ${newPoke.name}！`;
+                    let hpPercentage = oldPoke.currentHp / oldPoke.stats.hp; let evolvedPokemon = { ...newPoke, currentHp: Math.ceil(hpPercentage * newPoke.stats.hp) };
+                    playerParty[index] = evolvedPokemon; 
+                    if (index === activePlayerIndex) { 
+                        playerMaxHp = evolvedPokemon.stats.hp; playerHp = evolvedPokemon.currentHp; 
+                        elements.playerName.innerText = evolvedPokemon.name; 
+                        elements.playerSprite.src = window.getBackSpriteUrl(evolvedPokemon.image); 
+                        window.updatePlayerHpBar(); 
+                    }
+                    
+                    window.savePlayerData();
+                    evoNextBtn.classList.remove('hidden'); evoNextBtn.onclick = () => window.runNextEvolution(callback); return;
+                }
+                isNew = !isNew; evoImg.src = isNew ? newPoke.image : oldPoke.image;
+                evoImg.className = "w-48 h-48 sm:w-56 sm:h-56 object-contain relative z-10 filter brightness-200 contrast-200 drop-shadow-[0_0_30px_rgba(255,255,255,1)] transition-all";
+                flashes++; speed = Math.max(50, speed - 30); setTimeout(doFlash, speed);
+            }
+            setTimeout(doFlash, 1500);
+        };
+
+        window.startGame = function() {
+            if (playerParty.length > 0) {
+                activePlayerIndex = playerParty.findIndex(p => p.currentHp > 0);
+                if (activePlayerIndex === -1) {
+                    playerParty.forEach(p => p.currentHp = p.stats.hp);
+                    activePlayerIndex = 0;
+                }
+                playerMaxHp = playerParty[activePlayerIndex].stats.hp; playerHp = playerParty[activePlayerIndex].currentHp; 
+                elements.playerName.innerText = playerParty[activePlayerIndex].name; 
+                elements.playerSprite.src = window.getBackSpriteUrl(playerParty[activePlayerIndex].image); 
+                window.updatePlayerHpBar(); window.renderParty();
+                elements.overlay.classList.remove('hidden'); elements.overlay.classList.add('animate-encounter');
+                setTimeout(() => { window.spawnPokemon(); window.showScreen('battle'); }, 1200);
+                setTimeout(() => { elements.overlay.classList.remove('animate-encounter'); elements.overlay.classList.add('hidden'); }, 2200);
+            } else { window.showScreen('starter'); }
+        };
+
+        window.selectStarter = function(pokemonName) {
+            const pool = pokemonData.starters || pokemonData.starter || [];
+            const starterTemplate = pool.find(p => p.name === pokemonName) || pool[0];
+            const starter = { ...starterTemplate, currentHp: starterTemplate.stats.hp };
+            playerParty.push(starter); activePlayerIndex = 0;
+            playerMaxHp = starter.stats.hp; playerHp = playerMaxHp;
+            elements.playerName.innerText = starter.name; 
+            elements.playerSprite.src = window.getBackSpriteUrl(starter.image); 
+            window.updatePlayerHpBar(); window.renderParty(); window.savePlayerData(); 
+            elements.overlay.classList.remove('hidden'); elements.overlay.classList.add('animate-encounter');
+            setTimeout(() => { window.spawnPokemon(); window.showScreen('battle'); }, 1200);
+            setTimeout(() => { elements.overlay.classList.remove('animate-encounter'); elements.overlay.classList.add('hidden'); }, 2200);
+        };
+
+        /* STREAMING_CHUNK:Game flow logic... */
+        window.executeWildPokemonAttack = function(returnPhase = 1) {
+            if (gameMode === 'multi') return; 
+            
+            elements.pokemonSprite.classList.add('pokemon-attack');
+            setTimeout(() => {
+                const atk = currentPokemon.stats; const def = playerParty[activePlayerIndex].stats;
+                let damage = Math.max(1, (atk.attack > atk.spatk ? atk.attack : atk.spatk) - (def.defense));
+                let minDamage = Math.ceil(playerMaxHp * (1/4)); 
+                if (damage < minDamage) damage = minDamage;
+
+                playerHp -= damage; 
+                playerParty[activePlayerIndex].currentHp = playerHp; 
+                window.updatePlayerHpBar(); elements.pokemonSprite.classList.remove('pokemon-attack');
+                
+                elements.playerSpriteContainer.classList.add('pokemon-hit'); 
+                setTimeout(() => elements.playerSpriteContainer.classList.remove('pokemon-hit'), 500);
+                
+                if (elements.battleScene) { elements.battleScene.classList.add('player-hit'); setTimeout(() => elements.battleScene.classList.remove('player-hit'), 500); }
+
+                if (playerHp <= 0) {
+                    elements.messageBox.innerHTML = `<span class="text-red-600 font-black">倒下了！</span> ${playerParty[activePlayerIndex].name} 失去了戰鬥能力...`;
+                    currentPhase = 3; window.renderParty(); 
+                    
+                    elements.playerSpriteContainer.classList.add('translate-y-12', 'opacity-0');
+
+                    setTimeout(() => {
+                        let nextAliveIndex = -1;
+                        for (let i = 0; i < playerParty.length; i++) {
+                            if (playerParty[i].currentHp > 0) { nextAliveIndex = i; break; }
+                        }
+
+                        if (nextAliveIndex !== -1) {
+                            activePlayerIndex = nextAliveIndex;
+                            playerMaxHp = playerParty[activePlayerIndex].stats.hp; 
+                            playerHp = playerParty[activePlayerIndex].currentHp; 
+                            elements.playerName.innerText = playerParty[activePlayerIndex].name; 
+                            elements.playerSprite.src = window.getBackSpriteUrl(playerParty[activePlayerIndex].image); 
+                            window.updatePlayerHpBar();
+                            window.renderParty();
+                            
+                            elements.messageBox.innerHTML = `去吧！<span class="text-blue-600 font-bold">${playerParty[activePlayerIndex].name}</span>，交給你了！`;
+                            elements.playerSpriteContainer.classList.remove('translate-y-12', 'opacity-0');
+                            
+                            setTimeout(() => { window.resumeTurn(returnPhase); }, 1500);
+                        } else {
+                            elements.endTitle.innerText = "挑戰失敗！"; elements.endTitle.className = "text-4xl font-black text-red-600 mb-4";
+                            elements.endIcon.innerText = "😵"; elements.endSubtitle.innerText = "隊伍全軍覆沒，總共答對";
+                            elements.finalScore.innerText = score; window.showScreen('end');
+                        }
+                    }, 2000);
+                } else {
+                    elements.messageBox.innerHTML = `受到了 <span class="text-red-600 font-bold">${damage}</span> 點傷害！`;
+                    setTimeout(() => { window.resumeTurn(returnPhase); }, 1500);
+                }
+            }, 500);
+        };
+
+        window.resumeTurn = function(phase) {
+            currentPhase = phase;
+            if (phase === 1) {
+                playerFormulaStr = ""; playerAnswerStr = "";
+                elements.formulaDisplay.innerText = ""; elements.answerDisplay.innerText = "";
+                elements.phase1.classList.remove('hidden'); elements.phase2.classList.add('hidden');
+                elements.messageBox.innerText = `請重新列出圖形的面積算式！`;
+            } else if (phase === 2) {
+                playerAnswerStr = "";
+                elements.answerDisplay.innerText = "";
+                elements.messageBox.innerText = `請重新計算出正確答案！`;
+            }
+        };
+
+        window.updateHpBar = function() {
+            const perc = Math.max(0, (enemyHp / enemyMaxHp) * 100);
+            if (elements.enemyHpBar) {
+                elements.enemyHpBar.style.width = `${perc}%`;
+                elements.enemyHpBar.className = perc > 50 ? "bg-green-500 h-full rounded-full transition-all duration-500" : perc > 25 ? "bg-yellow-400 h-full rounded-full transition-all duration-500" : "bg-red-500 h-full rounded-full transition-all duration-500";
+            }
+            if (gameMode === 'multi') {
+                if (elements.multiHpText) {
+                    elements.multiHpText.innerText = `${Math.max(0, Math.floor(enemyHp))}/${enemyMaxHp}`;
+                }
+                if (elements.multiBossHpBar) {
+                    elements.multiBossHpBar.style.width = `${perc}%`;
+                    elements.multiBossHpBar.className = perc > 50 
+                        ? "h-full bg-gradient-to-r from-red-600 via-yellow-500 to-green-500 rounded transition-all duration-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]" 
+                        : perc > 25 
+                        ? "h-full bg-gradient-to-r from-red-600 to-yellow-500 rounded transition-all duration-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]" 
+                        : "h-full bg-red-600 rounded transition-all duration-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]";
+                }
+                if (elements.multiBossHpNum) {
+                    elements.multiBossHpNum.innerText = `${Math.max(0, Math.floor(enemyHp))} / ${enemyMaxHp}`;
+                }
+                if (elements.multiBossNameText && currentPokemon) {
+                    elements.multiBossNameText.innerText = currentPokemon.name;
+                }
+            }
+        };
+        window.updatePlayerHpBar = function() {
+            if(gameMode === 'multi') return;
+            const perc = Math.max(0, (playerHp / playerMaxHp) * 100);
+            elements.playerHpBar.style.width = `${perc}%`;
+            elements.playerHpText.innerText = `${Math.max(0, Math.floor(playerHp))}/${playerMaxHp}`;
+            elements.playerHpBar.className = perc > 50 ? "bg-green-500 h-full rounded-full transition-all duration-500" : perc > 25 ? "bg-yellow-400 h-full rounded-full transition-all duration-500" : "bg-red-500 h-full rounded-full transition-all duration-500";
+        };
+
+        window.attackPokemon = function(multiplier = 1.0, isFinalHit = false) {
+            elements.playerSpriteContainer.classList.add('player-attack-anim');
+            setTimeout(() => elements.playerSpriteContainer.classList.remove('player-attack-anim'), 500);
+            
+            setTimeout(() => {
+                elements.pokemonSprite.classList.add('pokemon-hit'); setTimeout(() => elements.pokemonSprite.classList.remove('pokemon-hit'), 500);
+                const atk = playerParty[activePlayerIndex].stats; const def = currentPokemon.stats; let damage = 0;
+                if (atk.attack > atk.spatk) damage = Math.max(1, atk.attack - def.defense); else damage = Math.max(1, atk.spatk - def.spdef);
+                
+                let baseDamage = Math.ceil(enemyMaxHp * (1/3)); 
+                if (damage < baseDamage) damage = baseDamage;
+                damage = Math.ceil(damage * multiplier);
+
+                if (isFinalHit) damage = enemyHp; 
+
+                enemyHp -= damage; window.updateHpBar(); 
+                
+                if (isFinalHit && enemyHp <= 0) {
+                    currentPhase = 3;
+                    elements.messageBox.innerHTML = `<span class="text-green-600 font-bold">擊敗了！</span> 丟出精靈球！`;
+                    setTimeout(() => window.catchPokemon(), 800);
+                }
+            }, 250); 
+        };
+
+        window.catchPokemon = function() {
+            elements.pokeball.classList.remove('hidden'); elements.pokeball.classList.add('pokeball-throw');
+            setTimeout(() => { elements.pokemonImg.classList.add('hidden'); elements.pokemonShadow.classList.add('hidden'); elements.messageBox.innerHTML = `搖晃中... 1...`; }, 1000);
+            setTimeout(() => elements.messageBox.innerHTML = `搖晃中... 2...`, 2000);
+            setTimeout(() => {
+                elements.pokeball.classList.remove('pokeball-throw');
+                elements.messageBox.innerHTML = `太棒了！成功收服 <span class="text-red-600 font-black">${currentPokemon.name}</span>！`;
+                
+                newlyCaughtPokemon = { ...currentPokemon, currentHp: currentPokemon.stats.hp };
+                
+                if (playerParty.length < 3) { 
+                    playerParty.push(newlyCaughtPokemon); window.renderParty(); window.savePlayerData();
+                    setTimeout(() => window.checkWinCondition(), 1000);
+                } else {
+                    elements.newPokemonName.innerText = newlyCaughtPokemon.name; elements.newPokemonImg.src = newlyCaughtPokemon.image;
+                    elements.partyReplaceList.innerHTML = '';
+                    playerParty.forEach((p, index) => {
+                        const btn = document.createElement('div'); btn.className = "border-2 border-gray-300 rounded-lg p-2 cursor-pointer hover:bg-gray-100 flex flex-col items-center transition-all";
+                        btn.innerHTML = `<img src="${p.image}" class="w-12 h-12 object-contain mb-1"><span class="text-xs font-bold text-gray-700">${p.name}</span>`;
+                        btn.onclick = () => { window.replacePokemon(index); }; elements.partyReplaceList.appendChild(btn);
+                    });
+                    elements.replaceModal.classList.remove('hidden'); return;
+                }
+            }, 3500);
+        };
+
+        // 當畫面載入時自動塞入下拉選單的選項
+        window.onload = () => { 
+            document.getElementById('login-class').innerHTML = classOptionsHtml;
+            document.getElementById('login-num').innerHTML = numOptionsHtml;
+            window.showScreen('mode'); 
+            window.resizeGame();
+        };
+    </script>
+</body>
+</html>
+
