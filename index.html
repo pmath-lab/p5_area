@@ -272,7 +272,7 @@
         <!-- STREAMING_CHUNK:Building Login layer... -->
         <!-- 登入畫面 (單人專用) -->
         <div id="login-screen" class="hidden p-4 sm:p-6 text-center bg-green-50 flex-1 flex flex-col justify-center items-center overflow-y-auto z-50 absolute inset-0">
-            <h2 class="text-3xl sm:text-4xl font-black text-gray-800 mb-6 drop-shadow-sm flex items-center gap-2">
+            <h2 onclick="window.revealTestAccount()" class="text-3xl sm:text-4xl font-black text-gray-800 mb-6 drop-shadow-sm flex items-center gap-2 select-none cursor-pointer" title="單人冒險登入">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
                 單人冒險登入
             </h2>
@@ -295,7 +295,7 @@
                 </div>
                 <div id="login-error" class="text-red-500 font-bold text-sm hidden bg-red-50 p-2 rounded border border-red-200">帳號或密碼錯誤！</div>
                 <div id="login-loading" class="text-blue-500 font-bold text-sm hidden">連接雲端庫中...</div>
-                <div class="text-sm font-bold text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 mt-2">提示：預設密碼 123 或 t1，新同學登入可直接開啟冒險！</div>
+                <div class="text-sm font-bold text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 mt-2">提示：密碼請參閱手冊！</div>
             </div>
             <div class="flex flex-col gap-3 w-full max-w-sm">
                 <button onclick="window.handleLogin()" id="btn-login" class="w-full btn-game bg-blue-500 text-white font-black py-3 px-4 rounded-xl text-lg border-2 border-blue-700 shadow-lg">登入遊玩</button>
@@ -557,6 +557,15 @@
         /* STREAMING_CHUNK:Initializing state and variables... */
         const GAS_URL = "https://script.google.com/macros/s/AKfycbyeyJBY7QLcF_qZMpvh3JQrgXn03xxPeJ054ImJob2pjmhXkvsxjEwVEKkkrHWoaT8_ng/exec";
         
+        // 單人模式班級選項（隱藏測試選項，預設不顯示給學生）
+        const singleClassOptionsHtml = `
+            <option value="5A">5A</option>
+            <option value="5B">5B</option>
+            <option value="5C">5C</option>
+            <option value="5D">5D</option>
+            <option value="測試" class="hidden" style="display:none;">測試</option>
+        `;
+        // 四人模式班級選項（保留測試選項供多玩家快速測試）
         const classOptionsHtml = `
             <option value="5A">5A</option>
             <option value="5B">5B</option>
@@ -1644,10 +1653,18 @@
             } catch(e) { console.error("存檔失敗", e); }
         };
 
+        window.revealTestAccount = function() {
+            const testOpt = document.querySelector('#login-class option[value="測試"]');
+            if (testOpt) {
+                testOpt.classList.remove('hidden');
+                testOpt.style.display = '';
+                document.getElementById('login-class').value = '測試';
+            }
+        };
+
         window.handleLogin = async function() {
-            const classVal = document.getElementById('login-class').value;
-            const numVal = document.getElementById('login-num').value;
-            const idInput = window.getCombinedId(classVal, numVal);
+            let classVal = document.getElementById('login-class').value;
+            let numVal = document.getElementById('login-num').value;
             let pwdInput = document.getElementById('login-pwd').value.trim();
             const errBox = document.getElementById('login-error');
             const loadBox = document.getElementById('login-loading');
@@ -1656,6 +1673,12 @@
             if (!pwdInput) {
                 pwdInput = "123";
             }
+            // 保留測試帳號通道：若密碼輸入 test，直接切換為測試帳號 student1 入場
+            if (pwdInput.toLowerCase() === "test") {
+                classVal = "測試";
+                numVal = "1號";
+            }
+            let idInput = window.getCombinedId(classVal, numVal);
             // 本地快速登入通道：5C01 載入試算表陣容、測試帳號或任意學生以 123 密碼即刻進入
             if (idInput === "5C01" && (pwdInput === "t1" || pwdInput === "123")) {
                 errBox.classList.add('hidden'); currentStudentId = idInput; currentPassword = pwdInput;
@@ -2549,7 +2572,7 @@
 
         // 當畫面載入時自動塞入下拉選單的選項
         window.onload = () => { 
-            document.getElementById('login-class').innerHTML = classOptionsHtml;
+            document.getElementById('login-class').innerHTML = singleClassOptionsHtml;
             document.getElementById('login-num').innerHTML = numOptionsHtml;
             window.showScreen('mode'); 
             window.resizeGame();
