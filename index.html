@@ -287,7 +287,7 @@
                 <div>
                     <label class="block text-left text-sm font-bold text-gray-700 mb-1">密碼</label>
                     <div class="relative w-full">
-                        <input type="password" id="login-pwd" inputmode="text" autocomplete="current-password" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter') window.handleLogin()" class="w-full border-2 border-gray-300 rounded-lg p-2.5 pr-10 font-bold text-gray-800 focus:border-blue-500 focus:outline-none text-center" placeholder="請輸入密碼 (預設 123 或 t1)">
+                        <input type="password" id="login-pwd" inputmode="text" autocomplete="current-password" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter') window.handleLogin()" class="w-full border-2 border-gray-300 rounded-lg p-2.5 pr-10 font-bold text-gray-800 focus:border-blue-500 focus:outline-none text-center" placeholder="請輸入密碼">
                         <button type="button" onclick="window.toggleLoginPasswordVisibility()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 p-1 text-base focus:outline-none select-none" title="顯示/隱藏密碼">
                             <span id="login-pwd-eye">👁️</span>
                         </button>
@@ -639,51 +639,233 @@
             gmaxCloud: document.getElementById('gmax-cloud'), multiHpText: document.getElementById('multi-hp-text-overlay')
         };
 
+        // 關都地區 151 隻完整寶可夢資料庫 (國立官方圖鑑 001 - 151)
+        const KANTO_RAW_DATA = [
+            [1,"奇異種子","妙蛙草",105,49,49,65,65],
+            [2,"妙蛙草","妙蛙花",120,62,63,80,80],
+            [3,"妙蛙花",null,140,82,83,100,100],
+            [4,"小火龍","火恐龍",99,52,43,60,50],
+            [5,"火恐龍","噴火龍",118,64,58,80,65],
+            [6,"噴火龍",null,138,84,78,109,85],
+            [7,"車厘龜","卡咪龜",104,48,65,50,64],
+[8,"卡咪龜","水箭龜",119,63,80,65,80],
+            [9,"水箭龜",null,139,83,100,85,105],
+            [10,"綠毛蟲","鐵甲蛹",105,30,35,20,20],
+            [11,"鐵甲蛹","巴大蝶",110,20,55,25,25],
+            [12,"巴大蝶",null,120,45,50,90,80],
+            [13,"獨角蟲","鐵殼蛹",100,35,30,20,20],
+            [14,"鐵殼蛹","大針蜂",105,25,50,25,25],
+            [15,"大針蜂",null,125,90,40,45,80],
+            [16,"波波","比比鳥",100,45,40,35,35],
+            [17,"比比鳥","大比鳥",123,60,55,50,50],
+            [18,"大比鳥",null,143,80,75,70,70],
+            [19,"小拉達","拉達",90,56,35,25,35],
+            [20,"拉達",null,115,81,60,50,70],
+            [21,"烈雀","大嘴雀",100,60,30,31,31],
+            [22,"大嘴雀",null,125,90,65,61,61],
+            [23,"阿柏蛇","阿柏怪",95,60,44,40,54],
+            [24,"阿柏怪",null,120,95,69,65,79],
+            [25,"皮卡丘","雷丘",95,55,40,50,50],
+            [26,"雷丘",null,120,90,55,90,80],
+            [27,"穿山鼠","穿山王",110,75,85,20,30],
+            [28,"穿山王",null,135,100,110,45,55],
+            [29,"尼多蘭","尼多娜",115,47,52,40,40],
+            [30,"尼多娜","尼多后",130,62,67,55,55],
+            [31,"尼多后",null,150,92,87,75,85],
+            [32,"尼多朗","尼多力諾",106,57,40,40,40],
+            [33,"尼多力諾","尼多王",121,72,57,55,55],
+            [34,"尼多王",null,141,102,77,85,75],
+            [35,"皮皮","皮可西",130,45,48,60,65],
+            [36,"皮可西",null,155,70,73,95,90],
+            [37,"六尾","九尾",98,41,40,50,65],
+            [38,"九尾",null,133,76,75,81,100],
+            [39,"胖丁","胖可丁",175,45,20,45,25],
+            [40,"胖可丁",null,200,70,45,85,50],
+            [41,"超音蝠","大嘴蝠",100,45,35,30,40],
+            [42,"大嘴蝠",null,135,80,70,65,75],
+            [43,"走路草","臭臭花",105,50,55,75,65],
+            [44,"臭臭花","霸王花",120,65,70,85,75],
+            [45,"霸王花",null,135,80,85,110,90],
+            [46,"派拉斯","派拉斯特",95,70,55,45,55],
+            [47,"派拉斯特",null,120,95,80,60,80],
+            [48,"毛球","摩魯蛾",120,55,50,40,55],
+            [49,"摩魯蛾",null,130,65,60,90,75],
+            [50,"地鼠","三地鼠",70,55,25,35,45],
+            [51,"三地鼠",null,95,100,50,50,70],
+            [52,"喵喵怪","貓老大",100,45,35,40,40],
+            [53,"貓老大",null,125,70,60,65,65],
+            [54,"傻鴨","哥達鴨",110,52,48,65,50],
+            [55,"哥達鴨",null,140,82,78,95,80],
+            [56,"猴怪","火爆猴",100,80,35,35,45],
+            [57,"火爆猴",null,125,105,60,60,70],
+            [58,"卡蒂狗","風速狗",115,70,45,70,50],
+            [59,"風速狗",null,150,110,80,100,80],
+            [60,"蚊香蝌蚪","蚊香君",100,50,40,40,40],
+            [61,"蚊香君","蚊香泳士",125,65,65,50,50],
+            [62,"蚊香泳士",null,150,95,95,70,90],
+            [63,"凱西","勇基拉",85,20,15,105,55],
+            [64,"勇基拉","胡地",100,35,30,120,70],
+            [65,"胡地",null,115,50,45,135,95],
+            [66,"腕力","豪力",130,80,50,35,35],
+            [67,"豪力","怪力",140,100,70,50,60],
+            [68,"怪力",null,150,130,80,65,85],
+            [69,"喇叭芽","口呆花",110,75,35,70,30],
+            [70,"口呆花","大食花",125,90,50,85,45],
+            [71,"大食花",null,140,105,65,100,70],
+            [72,"瑪瑙水母","毒刺水母",100,40,35,50,100],
+            [73,"毒刺水母",null,140,70,65,80,120],
+            [74,"小拳石","隆隆石",100,80,100,30,30],
+            [75,"隆隆石","隆隆岩",115,95,115,45,45],
+            [76,"隆隆岩",null,140,120,130,55,65],
+            [77,"小火馬","烈焰馬",110,85,55,65,65],
+            [78,"烈焰馬",null,125,100,70,80,80],
+            [79,"呆呆獸","呆殼獸",150,65,65,40,40],
+            [80,"呆殼獸",null,155,75,110,100,80],
+            [81,"小磁怪","三合一磁怪",85,35,70,95,55],
+            [82,"三合一磁怪",null,110,60,95,120,70],
+            [83,"大蔥鴨",null,112,90,55,58,62],
+            [84,"嘟嘟","嘟嘟利",95,85,45,35,35],
+            [85,"嘟嘟利",null,120,110,70,60,60],
+            [86,"小海獅","白海獅",125,45,55,45,70],
+            [87,"白海獅",null,150,70,80,70,95],
+            [88,"臭泥","臭臭泥",140,80,50,40,50],
+            [89,"臭臭泥",null,165,105,75,65,100],
+            [90,"大舌貝","刺甲貝",90,65,100,45,25],
+            [91,"刺甲貝",null,110,95,180,85,45],
+            [92,"鬼斯","鬼斯通",90,35,30,100,35],
+            [93,"鬼斯通","耿鬼",105,50,45,115,55],
+            [94,"耿鬼",null,120,65,60,130,75],
+            [95,"大岩蛇",null,95,45,160,30,45],
+            [96,"催眠貘","引夢貘人",120,48,45,43,90],
+            [97,"引夢貘人",null,145,73,70,73,115],
+            [98,"大鉗蟹","巨鉗蟹",90,105,90,25,25],
+            [99,"巨鉗蟹",null,115,130,115,50,50],
+            [100,"霹靂電球","頑皮雷彈",100,30,50,55,55],
+            [101,"頑皮雷彈",null,120,50,70,80,80],
+            [102,"蛋蛋","椰蛋樹",120,40,80,60,45],
+            [103,"椰蛋樹",null,155,95,85,125,75],
+            [104,"卡拉卡拉","嘎啦嘎啦",110,50,95,40,50],
+            [105,"嘎啦嘎啦",null,120,80,110,50,80],
+            [106,"飛腿郎",null,110,120,53,35,110],
+            [107,"快拳郎",null,110,105,79,35,110],
+            [108,"大舌頭",null,150,55,75,60,75],
+            [109,"瓦斯彈","雙彈瓦斯",100,65,95,60,45],
+            [110,"雙彈瓦斯",null,125,90,120,85,70],
+            [111,"獨角犀牛","鑽角犀獸",140,85,95,30,30],
+            [112,"鑽角犀獸",null,165,130,120,45,45],
+            [113,"吉利蛋",null,310,5,5,35,105],
+            [114,"蔓藤怪",null,125,55,115,100,40],
+            [115,"袋獸",null,165,95,80,40,80],
+            [116,"墨海馬","海刺龍",90,40,70,70,25],
+            [117,"海刺龍",null,115,65,95,95,45],
+            [118,"角金魚","金魚王",105,67,60,35,50],
+            [119,"金魚王",null,140,92,65,65,80],
+            [120,"海星星","寶石海星",90,45,55,70,55],
+            [121,"寶石海星",null,120,75,85,100,85],
+            [122,"魔牆人偶",null,100,45,65,100,120],
+            [123,"飛天螳螂",null,130,110,80,55,80],
+            [124,"迷唇姐",null,125,50,35,115,95],
+            [125,"電擊獸",null,125,83,57,95,85],
+            [126,"鴨嘴火獸",null,125,95,57,100,85],
+            [127,"凱羅斯",null,125,125,100,55,70],
+            [128,"肯泰羅",null,135,100,95,40,70],
+            [129,"鯉魚王","暴鯉龍",80,10,55,15,20],
+            [130,"暴鯉龍",null,155,125,79,60,100],
+            [131,"拉普拉斯",null,190,85,80,85,95],
+            [132,"百變怪",null,108,48,48,48,48],
+            [133,"伊布","水伊布",115,55,50,45,65],
+            [134,"水伊布",null,190,65,60,110,95],
+            [135,"雷伊布",null,125,65,60,110,95],
+            [136,"火伊布",null,125,130,60,95,110],
+            [137,"多邊獸",null,125,60,70,85,75],
+            [138,"菊石獸","多刺菊石獸",95,40,100,90,55],
+            [139,"多刺菊石獸",null,130,60,125,115,70],
+            [140,"化石盔","鐮刀盔",90,55,90,55,45],
+            [141,"鐮刀盔",null,120,115,105,65,70],
+            [142,"化石翼龍",null,140,105,65,60,75],
+            [143,"卡比獸",null,220,110,65,65,110],
+            [144,"急凍鳥",null,170,85,100,95,125],
+            [145,"閃電鳥",null,170,90,85,125,90],
+            [146,"火焰鳥",null,170,100,90,125,85],
+            [147,"迷你龍","哈克龍",101,64,45,50,50],
+            [148,"哈克龍","快龍",121,84,65,70,70],
+            [149,"快龍",null,171,134,95,100,100],
+            [150,"超夢",null,186,110,90,154,90],
+            [151,"夢幻",null,180,100,100,100,100]
+        ];
+
+        const KANTO_NAME_ALIASES = {
+            "妙蛙種子": "奇異種子", "奇異草": "妙蛙草", "奇異花": "妙蛙花",
+            "傑尼龜": "車厘龜", "卡密龜": "卡咪龜", "喵喵": "喵喵怪",
+            "可達鴨": "傻鴨", "水精靈": "水伊布", "雷精靈": "雷伊布", "火精靈": "火伊布",
+            "比卡超": "皮卡丘", "雷超": "雷丘", "比雕": "大比鳥", "末入蛾": "摩魯蛾",
+            "快泳蛙": "蚊香泳士", "呆河馬": "呆殼獸", "鐵甲貝": "刺甲貝",
+            "素利普": "催眠貘", "素利拍": "引夢貘人", "雷電球": "霹靂電球", "頑皮彈": "頑皮雷彈",
+            "沙瓦郎": "飛腿郎", "艾比郎": "快拳郎", "鐵甲犀牛": "獨角犀牛", "鐵甲暴龍": "鑽角犀獸",
+            "袋龍": "袋獸", "吸盤魔偶": "魔牆人偶", "鴨嘴火龍": "鴨嘴火獸", "大甲": "凱羅斯",
+            "乘龍": "拉普拉斯", "3D龍": "多邊獸", "超夢夢": "超夢", "無極汰那": "無極汰那 (極巨大化)"
+        };
+
+        // 自動建立完整 pokemonData 結構 (相容 starters, stage3_form1, stage2_form1, legendary, evolutions)
         const pokemonData = {
-            starters: [
-                { name: "奇異種子", nextEvolution: "妙蛙草", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png", stats: { hp: 105, attack: 49, defense: 49, spatk: 65, spdef: 65 } },
-                { name: "小火龍", nextEvolution: "火恐龍", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/4.png", stats: { hp: 99, attack: 52, defense: 43, spatk: 60, spdef: 50 } },
-                { name: "車厘龜", nextEvolution: "卡咪龜", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/7.png", stats: { hp: 104, attack: 48, defense: 65, spatk: 50, spdef: 64 } }
-            ],
-            stage3_form1: [
-                { name: "波波", nextEvolution: "比比鳥", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/16.png", stats: { hp: 100, attack: 45, defense: 40, spatk: 35, spdef: 35 } },
-                { name: "腕力", nextEvolution: "豪力", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/66.png", stats: { hp: 130, attack: 80, defense: 50, spatk: 35, spdef: 35 } },
-                { name: "鬼斯", nextEvolution: "鬼斯通", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/92.png", stats: { hp: 90, attack: 35, defense: 30, spatk: 100, spdef: 35 } }
-            ],
-            stage2_form1: [
-                { name: "喵喵怪", nextEvolution: "貓老大", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/52.png", stats: { hp: 100, attack: 45, defense: 35, spatk: 40, spdef: 40 } },
-                { name: "傻鴨", nextEvolution: "哥達鴨", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/54.png", stats: { hp: 110, attack: 52, defense: 48, spatk: 65, spdef: 50 } },
-                { name: "伊布", nextEvolution: "水伊布", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png", stats: { hp: 115, attack: 55, defense: 50, spatk: 45, spdef: 65 } },
-                { name: "皮卡丘", nextEvolution: "雷丘", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png", stats: { hp: 100, attack: 55, defense: 40, spatk: 50, spdef: 50 } }
-            ],
-            legendary: [
-                { name: "超夢", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/150.png", stats: { hp: 186, attack: 110, defense: 90, spatk: 154, spdef: 90 } },
-                { name: "夢幻", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/151.png", stats: { hp: 180, attack: 100, defense: 100, spatk: 100, spdef: 100 } }
-            ],
+            starters: [],
+            stage3_form1: [],
+            stage2_form1: [],
+            legendary: [],
             gigantamax_legendaries: [
                 { name: "無極汰那 (極巨大化)", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/890.png", stats: { hp: 400, attack: 115, defense: 250, spatk: 125, spdef: 250 } },
                 { name: "超夢 (極巨大化)", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/150.png", stats: { hp: 400, attack: 150, defense: 120, spatk: 180, spdef: 120 } }
             ],
-            evolutions: {
-                "妙蛙草": { name: "妙蛙草", nextEvolution: "妙蛙花", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/2.png", stats: { hp: 120, attack: 62, defense: 63, spatk: 80, spdef: 80 } },
-                "妙蛙花": { name: "妙蛙花", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/3.png", stats: { hp: 140, attack: 82, defense: 83, spatk: 100, spdef: 100 } },
-                "火恐龍": { name: "火恐龍", nextEvolution: "噴火龍", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/5.png", stats: { hp: 118, attack: 64, defense: 58, spatk: 80, spdef: 65 } },
-                "噴火龍": { name: "噴火龍", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png", stats: { hp: 138, attack: 84, defense: 78, spatk: 109, spdef: 85 } },
-                "卡咪龜": { name: "卡咪龜", nextEvolution: "水箭龜", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/8.png", stats: { hp: 119, attack: 63, defense: 80, spatk: 65, spdef: 80 } },
-                "水箭龜": { name: "水箭龜", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/9.png", stats: { hp: 139, attack: 83, defense: 100, spatk: 85, spdef: 105 } },
-                "比比鳥": { name: "比比鳥", nextEvolution: "大比鳥", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/17.png", stats: { hp: 123, attack: 60, defense: 55, spatk: 50, spdef: 50 } },
-                "大比鳥": { name: "大比鳥", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/18.png", stats: { hp: 143, attack: 80, defense: 75, spatk: 70, spdef: 70 } },
-                "豪力": { name: "豪力", nextEvolution: "怪力", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/67.png", stats: { hp: 140, attack: 100, defense: 70, spatk: 50, spdef: 60 } },
-                "怪力": { name: "怪力", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/68.png", stats: { hp: 150, attack: 130, defense: 80, spatk: 65, spdef: 85 } },
-                "鬼斯通": { name: "鬼斯通", nextEvolution: "耿鬼", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/93.png", stats: { hp: 105, attack: 50, defense: 45, spatk: 115, spdef: 55 } },
-                "耿鬼": { name: "耿鬼", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/94.png", stats: { hp: 120, attack: 65, defense: 60, spatk: 130, spdef: 75 } },
-                "貓老大": { name: "貓老大", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/53.png", stats: { hp: 125, attack: 70, defense: 60, spatk: 65, spdef: 65 } },
-                "哥達鴨": { name: "哥達鴨", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/55.png", stats: { hp: 140, attack: 82, defense: 78, spatk: 95, spdef: 80 } },
-                "水伊布": { name: "水伊布", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/134.png", stats: { hp: 190, attack: 65, defense: 60, spatk: 110, spdef: 95 } },
-                "雷丘": { name: "雷丘", image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/26.png", stats: { hp: 130, attack: 90, defense: 55, spatk: 90, spdef: 80 } }
-            }
+            evolutions: {},
+            allMap: {}
         };
+
+        (function buildKantoPokedex() {
+            const stage3BaseIds = [1, 4, 7, 10, 13, 16, 29, 32, 43, 60, 63, 66, 69, 74, 92, 147];
+            const legendaryIds = [144, 145, 146, 149, 150, 151];
+            const middleAndFinalIds = [2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18, 20, 22, 24, 26, 28, 30, 31, 33, 34, 36, 38, 40, 42, 44, 45, 47, 49, 51, 53, 55, 57, 59, 61, 62, 64, 65, 67, 68, 70, 71, 73, 75, 76, 78, 80, 82, 85, 87, 89, 91, 93, 94, 97, 99, 101, 103, 105, 110, 112, 117, 119, 121, 130, 134, 135, 136, 139, 141, 148];
+
+            KANTO_RAW_DATA.forEach(row => {
+                const [id, name, nextEvo, hp, atk, def, spatk, spdef] = row;
+                const pkm = {
+                    id: id,
+                    name: name,
+                    image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
+                    stats: { hp, attack: atk, defense: def, spatk, spdef }
+                };
+                if (nextEvo) pkm.nextEvolution = nextEvo;
+
+                pokemonData.allMap[name] = pkm;
+
+                if (id === 1 || id === 4 || id === 7) {
+                    pokemonData.starters.push(pkm);
+                }
+
+                if (legendaryIds.includes(id)) {
+                    pokemonData.legendary.push(pkm);
+                } else if (stage3BaseIds.includes(id)) {
+                    pokemonData.stage3_form1.push(pkm);
+                } else if (middleAndFinalIds.includes(id)) {
+                    pokemonData.evolutions[name] = pkm;
+                } else {
+                    pokemonData.stage2_form1.push(pkm);
+                }
+
+                // 確保所有二階與三階進化型都能在 evolutions 中被查找到
+                if (middleAndFinalIds.includes(id)) {
+                    pokemonData.evolutions[name] = pkm;
+                }
+            });
+
+            // 確保伊布的進化型皆在 evolutions
+            [134, 135, 136].forEach(eid => {
+                const ep = pokemonData.allMap[KANTO_RAW_DATA[eid - 1][1]];
+                if (ep) pokemonData.evolutions[ep.name] = ep;
+            });
+        })();
+
         pokemonData.starter = pokemonData.starters;
+
 
         // 全域圖片防破圖與 CDN 自動備援機制
         window.handleImageError = function(img) {
@@ -714,7 +896,7 @@
 
             // 4. 若 official-artwork 依然載入失敗，退回標準正面小圖
             if (src.includes('/other/official-artwork/')) {
-                let match = src.match(/\/official-artwork\/(\d+)\.png/);
+                let match = src.match(/\/other\/official-artwork\/(\d+)\.png/);
                 let id = match ? match[1] : '1';
                 img.src = `https://fastly.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`;
                 return;
@@ -731,7 +913,6 @@
             }
         }, true);
 
-
         window.getBackSpriteUrl = function(frontUrl) {
             if(!frontUrl) return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png";
             let match = frontUrl.match(/\/(\d+)\.png/);
@@ -744,26 +925,14 @@
             return frontUrl;
         };
 
-
         window.getPokemonByName = function(name) {
             if (!name) name = "";
             name = name.trim();
-            const nameAliases = {
-                "妙蛙種子": "奇異種子",
-                "奇異草": "妙蛙草",
-                "奇異花": "妙蛙花",
-                "傑尼龜": "車厘龜",
-                "卡密龜": "卡咪龜",
-                "喵喵": "喵喵怪",
-                "可達鴨": "傻鴨",
-                "水精靈": "水伊布",
-                "比卡超": "皮卡丘",
-                "雷超": "雷丘",
-                "比雕": "大比鳥",
-                "無極汰那": "無極汰那 (極巨大化)",
-                "超夢夢": "超夢"
-            };
-            if (nameAliases[name]) name = nameAliases[name];
+            if (KANTO_NAME_ALIASES[name]) name = KANTO_NAME_ALIASES[name];
+
+            if (pokemonData.allMap && pokemonData.allMap[name]) {
+                return JSON.parse(JSON.stringify(pokemonData.allMap[name]));
+            }
 
             for (let category in pokemonData) {
                 if (Array.isArray(pokemonData[category])) {
@@ -1630,27 +1799,167 @@
             
             window.showScreen('multiEnd');
         };
-        window.savePlayerData = async function() {
-            if (gameMode === 'multi' || !currentStudentId || GAS_URL.includes("請將您的")) return; 
+        // 讀取本地寶可夢存檔資料
+        // 讀取本地寶可夢存檔資料
+        window.loadLocalPlayerData = function(studentId) {
             try {
-                fetch(GAS_URL, {
-                    method: 'POST',
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({
-                        action: 'save',
-                        id: currentStudentId,
-                        poke1: playerParty[0] ? playerParty[0].name : "",
-                        poke2: playerParty[1] ? playerParty[1].name : "",
-                        poke3: playerParty[2] ? playerParty[2].name : "",
-                        tri_total: gameStats.triangle.total,
-                        tri_correct: gameStats.triangle.correct,
-                        para_total: gameStats.parallelogram.total,
-                        para_correct: gameStats.parallelogram.correct,
-                        trap_total: gameStats.trapezoid.total,
-                        trap_correct: gameStats.trapezoid.correct
-                    })
-                });
-            } catch(e) { console.error("存檔失敗", e); }
+                const savedJson = localStorage.getItem('pokemon_player_save_' + studentId);
+                if (savedJson) {
+                    const data = JSON.parse(savedJson);
+                    if (data) {
+                        let hasPkm = false;
+                        if (data.party && Array.isArray(data.party) && data.party.length > 0) hasPkm = true;
+                        let p1 = data.poke1 || data.pkm1 || data.PKM1 || data.Pokemon1 || data.pokemon1;
+                        let p2 = data.poke2 || data.pkm2 || data.PKM2 || data.Pokemon2 || data.pokemon2;
+                        let p3 = data.poke3 || data.pkm3 || data.PKM3 || data.Pokemon3 || data.pokemon3;
+                        if (p1 || p2 || p3) hasPkm = true;
+                        if (hasPkm) return data;
+                    }
+                }
+            } catch(e) {
+                console.warn("讀取本地存檔失敗:", e);
+            }
+            return null;
+        };
+        // 將存檔資料套用至遊戲狀態
+        window.applyLoadedPlayerData = function(savedData) {
+            if (!savedData) return false;
+            if (savedData.gameStats) {
+                gameStats = savedData.gameStats;
+            } else {
+                gameStats = {
+                    triangle: { total: savedData.tri_total || 0, correct: savedData.tri_correct || 0 },
+                    parallelogram: { total: savedData.para_total || 0, correct: savedData.para_correct || 0 },
+                    trapezoid: { total: savedData.trap_total || 0, correct: savedData.trap_correct || 0 }
+                };
+            }
+            score = (savedData.score !== undefined) 
+                ? savedData.score 
+                : (gameStats.triangle.correct + gameStats.parallelogram.correct + gameStats.trapezoid.correct);
+
+            playerParty = [];
+            if (savedData.party && Array.isArray(savedData.party) && savedData.party.length > 0) {
+                for (let item of savedData.party) {
+                    let pkName = item.name || item;
+                    if (pkName && typeof pkName === 'string') {
+                        let pk = window.getPokemonByName(pkName.trim());
+                        if (pk) {
+                            pk.currentHp = (item.currentHp !== undefined) ? item.currentHp : pk.stats.hp;
+                            if (item.maxHp) pk.maxHp = item.maxHp;
+                            playerParty.push(pk);
+                        }
+                    }
+                }
+            } else {
+                let p1 = savedData.poke1 || savedData.pkm1 || savedData.PKM1 || savedData.Pokemon1 || savedData.pokemon1 || savedData.Poke1;
+                let p2 = savedData.poke2 || savedData.pkm2 || savedData.PKM2 || savedData.Pokemon2 || savedData.pokemon2 || savedData.Poke2;
+                let p3 = savedData.poke3 || savedData.pkm3 || savedData.PKM3 || savedData.Pokemon3 || savedData.pokemon3 || savedData.Poke3;
+                let pNames = [p1, p2, p3];
+                for (let name of pNames) {
+                    if (name && typeof name === 'string' && name.trim()) {
+                        let pk = window.getPokemonByName(name.trim());
+                        if (pk) {
+                            pk.currentHp = pk.stats.hp;
+                            playerParty.push(pk);
+                        }
+                    }
+                }
+            }
+            activePlayerIndex = (savedData.activePlayerIndex !== undefined && savedData.activePlayerIndex < playerParty.length) 
+                ? savedData.activePlayerIndex 
+                : 0;
+            return playerParty.length > 0;
+        };
+        // 進入單人對戰畫面之統一介面初始化
+        window.enterSingleGameScene = function() {
+            document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
+            if (elements.playerSpriteContainer) {
+                elements.playerSpriteContainer.classList.remove('opacity-0', 'translate-y-12', 'hidden');
+            }
+            if (elements.singleBottomPanel) elements.singleBottomPanel.classList.remove('hidden');
+            if (elements.multiBottomPanel) elements.multiBottomPanel.classList.add('hidden');
+            const multiSprites = document.getElementById('multi-player-sprites-container');
+            if (multiSprites) multiSprites.classList.add('hidden');
+            
+            elements.canvasWrapper.classList.remove('hidden');
+            elements.headerTitleText.innerText = "面積大挑戰";
+            elements.headerTrainerInfo.classList.remove('hidden');
+            elements.headerScoreInfo.classList.remove('hidden');
+            elements.headerHomeBtn.classList.remove('hidden');
+            elements.enemyInfoContainer.classList.remove('left-1/2', 'transform', '-translate-x-1/2');
+            elements.messageBox.classList.remove('hidden');
+            elements.gmaxCloud.classList.add('hidden');
+            elements.multiHpText.classList.add('hidden');
+            elements.pokemonImg.classList.remove('gmax-boss');
+            
+            elements.canvasWrapper.className = "w-1/2 h-full flex flex-col justify-start pt-4 sm:pt-6 items-start pl-2 sm:pl-6 relative z-10 transition-all duration-300";
+            elements.enemyWrapper.className = "w-1/2 h-full flex flex-col items-center justify-start pt-12 sm:pt-16 pr-2 sm:pr-8 relative z-10 transition-all duration-300";
+            
+            elements.headerStudentId.innerText = currentStudentId; 
+            elements.score.innerText = score; 
+            elements.gameHeader.classList.remove('hidden');
+        };
+
+        // 儲存玩家寶可夢進度（本地即時保存 + 雲端背景同步）
+        window.savePlayerData = async function() {
+            if (gameMode === 'multi' || !currentStudentId) return; 
+            
+            // 1. 本地持久化保存：確保下次進入自動載入上次玩的POKEMON資料
+            try {
+                const localData = {
+                    id: currentStudentId,
+                    party: playerParty.map(p => ({
+                        name: p.name,
+                        currentHp: p.currentHp !== undefined ? p.currentHp : p.stats.hp,
+                        maxHp: p.stats ? p.stats.hp : (p.maxHp || 100)
+                    })),
+                    poke1: playerParty[0] ? playerParty[0].name : "",
+                    pkm1: playerParty[0] ? playerParty[0].name : "",
+                    pkm2: playerParty[1] ? playerParty[1].name : "",
+                    pkm3: playerParty[2] ? playerParty[2].name : "",
+                    PKM1: playerParty[0] ? playerParty[0].name : "",
+                    PKM2: playerParty[1] ? playerParty[1].name : "",
+                    PKM3: playerParty[2] ? playerParty[2].name : "",
+                    poke2: playerParty[1] ? playerParty[1].name : "",
+                    poke3: playerParty[2] ? playerParty[2].name : "",
+                    score: score,
+                    activePlayerIndex: activePlayerIndex,
+                    gameStats: gameStats,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('pokemon_player_save_' + currentStudentId, JSON.stringify(localData));
+            } catch(e) {
+                console.warn("本地存檔失敗:", e);
+            }
+
+            // 2. 雲端同步 (Google Apps Script)
+            if (!GAS_URL.includes("請將您的")) {
+                try {
+                    fetch(GAS_URL, {
+                        method: 'POST',
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify({
+                            action: 'save',
+                            id: currentStudentId,
+                            poke1: playerParty[0] ? playerParty[0].name : "",
+                            poke2: playerParty[1] ? playerParty[1].name : "",
+                            poke3: playerParty[2] ? playerParty[2].name : "",
+                            pkm1: playerParty[0] ? playerParty[0].name : "",
+                            pkm2: playerParty[1] ? playerParty[1].name : "",
+                            pkm3: playerParty[2] ? playerParty[2].name : "",
+                            PKM1: playerParty[0] ? playerParty[0].name : "",
+                            PKM2: playerParty[1] ? playerParty[1].name : "",
+                            PKM3: playerParty[2] ? playerParty[2].name : "",
+                            tri_total: gameStats.triangle.total,
+                            tri_correct: gameStats.triangle.correct,
+                            para_total: gameStats.parallelogram.total,
+                            para_correct: gameStats.parallelogram.correct,
+                            trap_total: gameStats.trapezoid.total,
+                            trap_correct: gameStats.trapezoid.correct
+                        })
+                    }).catch(err => console.warn("雲端同步失敗:", err));
+                } catch(e) { console.error("雲端存檔失敗", e); }
+            }
         };
 
         window.revealTestAccount = function() {
@@ -1679,147 +1988,132 @@
                 numVal = "1號";
             }
             let idInput = window.getCombinedId(classVal, numVal);
-            // 本地快速登入通道：5C01 載入試算表陣容、測試帳號或任意學生以 123 密碼即刻進入
-            if (idInput === "5C01" && (pwdInput === "t1" || pwdInput === "123")) {
-                errBox.classList.add('hidden'); currentStudentId = idInput; currentPassword = pwdInput;
+
+            // 優先檢查本地是否有上次遊玩的寶可夢存檔資料
+            // 1. 優先檢查本地是否有上次遊玩的寶可夢存檔資料
+
+            let localSave = window.loadLocalPlayerData(idInput);
+            if (localSave && window.applyLoadedPlayerData(localSave)) {
+                errBox.classList.add('hidden');
+                currentStudentId = idInput;
+                currentPassword = pwdInput;
+                window.enterSingleGameScene();
+                window.showScreen('start');
+                return;
+            }
+
+            // 2. 測試帳號 student1：若無本地存檔則進入初始選角色
+            if (idInput.startsWith("student") || idInput === "測試1號") {
+                errBox.classList.add('hidden');
+                currentStudentId = idInput;
+                currentPassword = pwdInput;
+                playerParty = []; score = 0; activePlayerIndex = 0;
+                gameStats = { parallelogram: {total:0,correct:0}, triangle: {total:0,correct:0}, trapezoid: {total:0,correct:0} };
+                window.enterSingleGameScene();
+                window.showScreen('starter'); 
+
+                return;
+            }
+
+            // 3. 5C01 專屬預設：若無本地存檔，直接給予經典隊伍 (妙蛙花、耿鬼、腕力) 快速進入冒險
+
+            if (idInput === "5C01") {
+                errBox.classList.add('hidden');
+                currentStudentId = idInput;
+                currentPassword = pwdInput;
                 playerParty = [window.getPokemonByName("妙蛙花"), window.getPokemonByName("耿鬼"), window.getPokemonByName("腕力")];
                 playerParty.forEach(pk => { if(pk) pk.currentHp = pk.stats.hp; });
                 score = 11; activePlayerIndex = 0;
                 gameStats = { parallelogram: {total:5,correct:4}, triangle: {total:10,correct:4}, trapezoid: {total:6,correct:3} };
-                gameStats = { parallelogram: {total:5,correct:4}, triangle: {total:10,correct:4}, trapezoid: {total:6,correct:3} };
-                document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
-                if (elements.playerSpriteContainer) {
-                    elements.playerSpriteContainer.classList.remove('opacity-0', 'translate-y-12', 'hidden');
-                }
-                elements.singleBottomPanel.classList.remove('hidden');
-                elements.multiBottomPanel.classList.add('hidden');
-                document.getElementById('multi-player-sprites-container').classList.add('hidden');
-                
-                elements.canvasWrapper.classList.remove('hidden');
-                elements.headerTitleText.innerText = "面積大挑戰";
-                elements.headerTrainerInfo.classList.remove('hidden');
-                elements.headerScoreInfo.classList.remove('hidden');
-                elements.headerHomeBtn.classList.remove('hidden');
-                elements.enemyInfoContainer.classList.remove('left-1/2', 'transform', '-translate-x-1/2');
-                elements.messageBox.classList.remove('hidden');
-                elements.gmaxCloud.classList.add('hidden');
-                elements.multiHpText.classList.add('hidden');
-                elements.pokemonImg.classList.remove('gmax-boss');
-                
-                elements.canvasWrapper.className = "w-1/2 h-full flex flex-col justify-start pt-4 sm:pt-6 items-start pl-2 sm:pl-6 relative z-10 transition-all duration-300";
-                elements.enemyWrapper.className = "w-1/2 h-full flex flex-col items-center justify-start pt-12 sm:pt-16 pr-2 sm:pr-8 relative z-10 transition-all duration-300";
-                
-                elements.headerStudentId.innerText = currentStudentId; elements.score.innerText = score; elements.gameHeader.classList.remove('hidden');
-                window.showScreen('start'); return;
-            }
-
-            if (idInput.startsWith("student") || pwdInput === "123" || GAS_URL.includes("請將您的")) {
-                errBox.classList.add('hidden'); currentStudentId = idInput; currentPassword = pwdInput;
-                playerParty = []; score = 0; activePlayerIndex = 0;
-                gameStats = { parallelogram: {total:0,correct:0}, triangle: {total:0,correct:0}, trapezoid: {total:0,correct:0} };
-
-                document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
-                elements.singleBottomPanel.classList.remove('hidden');
-                elements.multiBottomPanel.classList.add('hidden');
-                document.getElementById('multi-player-sprites-container').classList.add('hidden');
-
-                elements.canvasWrapper.classList.remove('hidden');
-                elements.headerTitleText.innerText = "面積大挑戰";
-                elements.headerTrainerInfo.classList.remove('hidden');
-                elements.headerScoreInfo.classList.remove('hidden');
-                elements.headerHomeBtn.classList.remove('hidden');
-                elements.enemyInfoContainer.classList.remove('left-1/2', 'transform', '-translate-x-1/2');
-                elements.messageBox.classList.remove('hidden');
-                elements.gmaxCloud.classList.add('hidden');
-                elements.multiHpText.classList.add('hidden');
-                elements.pokemonImg.classList.remove('gmax-boss');
-
-                elements.canvasWrapper.className = "w-1/2 h-full flex flex-col justify-start pt-4 sm:pt-6 items-start pl-2 sm:pl-6 relative z-10 transition-all duration-300";
-                elements.enemyWrapper.className = "w-1/2 h-full flex flex-col items-center justify-start pt-12 sm:pt-16 pr-2 sm:pr-8 relative z-10 transition-all duration-300";
-
-                elements.headerStudentId.innerText = currentStudentId; elements.score.innerText = score; elements.gameHeader.classList.remove('hidden');
-                window.showScreen('starter'); return;
-            }
-
-            errBox.classList.add('hidden'); loadBox.classList.remove('hidden'); btnLogin.disabled = true; 
-
-            try {
-                const response = await fetch(GAS_URL, {
-                    method: 'POST',
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: 'login', id: idInput, password: pwdInput })
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    currentStudentId = idInput; currentPassword = pwdInput;
-                    
-                    gameStats.triangle.total = data.tri_total || 0;
-                    gameStats.triangle.correct = data.tri_correct || 0;
-                    gameStats.parallelogram.total = data.para_total || 0;
-                    gameStats.parallelogram.correct = data.para_correct || 0;
-                    gameStats.trapezoid.total = data.trap_total || 0;
-                    gameStats.trapezoid.correct = data.trap_correct || 0;
-
-                    score = gameStats.triangle.correct + gameStats.parallelogram.correct + gameStats.trapezoid.correct;
-                    
-                    playerParty = []; activePlayerIndex = 0;
-                    let p1 = window.getPokemonByName(data.poke1); if(p1){ p1.currentHp = p1.stats.hp; playerParty.push(p1); }
-                    let p2 = window.getPokemonByName(data.poke2); if(p2){ p2.currentHp = p2.stats.hp; playerParty.push(p2); }
-                    let p3 = window.getPokemonByName(data.poke3); if(p3){ p3.currentHp = p3.stats.hp; playerParty.push(p3); }
-                    
-                    document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
-                    elements.singleBottomPanel.classList.remove('hidden');
-                    elements.multiBottomPanel.classList.add('hidden');
-                    document.getElementById('multi-player-sprites-container').classList.add('hidden');
-                    
-                    elements.canvasWrapper.classList.remove('hidden');
-                    elements.headerTitleText.innerText = "面積大挑戰";
-                    elements.headerTrainerInfo.classList.remove('hidden');
-                    elements.headerScoreInfo.classList.remove('hidden');
-                    elements.headerHomeBtn.classList.remove('hidden');
-                    elements.enemyInfoContainer.classList.remove('left-1/2', 'transform', '-translate-x-1/2');
-                    elements.messageBox.classList.remove('hidden');
-                    elements.gmaxCloud.classList.add('hidden');
-                    elements.multiHpText.classList.add('hidden');
-                    elements.pokemonImg.classList.remove('gmax-boss');
-                    
-                    elements.canvasWrapper.className = "w-1/2 h-full flex flex-col justify-start pt-4 sm:pt-6 items-start pl-2 sm:pl-6 relative z-10 transition-all duration-300";
-                    elements.enemyWrapper.className = "w-1/2 h-full flex flex-col items-center justify-start pt-12 sm:pt-16 pr-2 sm:pr-8 relative z-10 transition-all duration-300";
-                    
-                    elements.headerStudentId.innerText = currentStudentId;
-                    elements.score.innerText = score;
-                    elements.gameHeader.classList.remove('hidden');
-                    
-                    if (playerParty.length === 0) { window.showScreen('starter'); } 
-                    else { window.showScreen('start'); }
-                } else {
-                    errBox.innerText = data.message; errBox.classList.remove('hidden');
-                }
-            } catch (e) {
-                console.warn("GAS 連線未成功，自動啟用離線冒險模式:", e);
-                errBox.classList.add('hidden'); currentStudentId = idInput; currentPassword = pwdInput;
-                playerParty = []; score = 0; activePlayerIndex = 0;
-                gameStats = { parallelogram: {total:0,correct:0}, triangle: {total:0,correct:0}, trapezoid: {total:0,correct:0} };
-                document.querySelectorAll('.single-player-element').forEach(el => el.classList.remove('hidden'));
-                elements.singleBottomPanel.classList.remove('hidden');
-                elements.multiBottomPanel.classList.add('hidden');
-                document.getElementById('multi-player-sprites-container').classList.add('hidden');
-                elements.canvasWrapper.classList.remove('hidden');
-                elements.headerTitleText.innerText = "面積大挑戰";
-                elements.headerTrainerInfo.classList.remove('hidden');
-                elements.headerScoreInfo.classList.remove('hidden');
-                elements.headerHomeBtn.classList.remove('hidden');
-                elements.enemyInfoContainer.classList.remove('left-1/2', 'transform', '-translate-x-1/2');
-                elements.messageBox.classList.remove('hidden');
-                elements.headerStudentId.innerText = currentStudentId; elements.score.innerText = score; elements.gameHeader.classList.remove('hidden');
-                window.showScreen('starter');
-                loadBox.classList.add('hidden'); btnLogin.disabled = false;
+                window.savePlayerData();
+                window.enterSingleGameScene();
+                window.showScreen('start');
                 return;
             }
-            loadBox.classList.add('hidden'); btnLogin.disabled = false;
+            // 4. 正式學生帳號（包含 5C40 等已於雲端試算表有存檔之舊帳號）：
+            // 若本地尚未存檔，向 Google Apps Script 雲端試算表查詢歷史陣容
+            errBox.classList.add('hidden');
+            loadBox.classList.remove('hidden');
+            btnLogin.disabled = true;
+            try {
+                let data = null;
+                // A. 首先嘗試以 action: 'login' 查詢
+                if (!GAS_URL.includes("請將您的")) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 3500);
+                        const response = await fetch(GAS_URL, {
+                            method: 'POST',
+                            headers: { "Content-Type": "text/plain;charset=utf-8" },
+                            body: JSON.stringify({ action: 'login', id: idInput, password: pwdInput }),
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+                        data = await response.json();
+                    } catch (e1) {
+                        console.warn("GAS action:login 連線未成功:", e1);
+                    }
+                    // B. 若 login 未能成功取回資料，以 single_id_login 備援查詢（防範密碼差異或直接查詢陣容）
+                    if (!data || !data.success) {
+                        try {
+                            const controller2 = new AbortController();
+                            const timeoutId2 = setTimeout(() => controller2.abort(), 3000);
+                            const response2 = await fetch(GAS_URL, {
+                                method: 'POST',
+                                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                                body: JSON.stringify({ action: 'single_id_login', id: idInput }),
+                                signal: controller2.signal
+                            });
+                            clearTimeout(timeoutId2);
+                            const data2 = await response2.json();
+                            if (data2 && data2.success) {
+                                data = data2;
+                            }
+                        } catch (e2) {
+                            console.warn("GAS single_id_login 備援未成功:", e2);
+                        }
+                    }
+                }
+                if (data && data.success) {
+                    currentStudentId = idInput;
+                    currentPassword = pwdInput;
+                    let p1 = data.poke1 || data.pkm1 || data.PKM1 || data.Pokemon1 || data.pokemon1 || data.Poke1;
+                    let p2 = data.poke2 || data.pkm2 || data.PKM2 || data.Pokemon2 || data.pokemon2 || data.Poke2;
+                    let p3 = data.poke3 || data.pkm3 || data.PKM3 || data.Pokemon3 || data.pokemon3 || data.Poke3;
+                    let hasParty = false;
+                    if (p1 || p2 || p3) {
+                        hasParty = window.applyLoadedPlayerData(data);
+                    }
+                    window.savePlayerData(); // 儲存至本地快取，下次秒進
+                    window.enterSingleGameScene();
+                    if (hasParty && playerParty.length > 0) {
+                        window.showScreen('start');
+                    } else {
+                        window.showScreen('starter');
+                    }
+                    loadBox.classList.add('hidden');
+                    btnLogin.disabled = false;
+                    return;
+                } else if (data && data.message && data.message !== "找不到資料") {
+                    errBox.innerText = data.message;
+                    errBox.classList.remove('hidden');
+                    loadBox.classList.add('hidden');
+                    btnLogin.disabled = false;
+                    return;
+                }
+            } catch (e) {
+                console.warn("GAS 連線異常，啟用離線/新玩家模式:", e);
+            }
+            // 5. 查無歷史陣容之新玩家：引導至選夥伴畫面
+            currentStudentId = idInput;
+            currentPassword = pwdInput;
+            playerParty = []; score = 0; activePlayerIndex = 0;
+            gameStats = { parallelogram: {total:0,correct:0}, triangle: {total:0,correct:0}, trapezoid: {total:0,correct:0} };
+            window.enterSingleGameScene();
+            window.showScreen('starter');
+            loadBox.classList.add('hidden');
+            btnLogin.disabled = false;
         };
-
         window.toggleLoginPasswordVisibility = function() {
             const pwdInput = document.getElementById('login-pwd');
             const eyeIcon = document.getElementById('login-pwd-eye');
